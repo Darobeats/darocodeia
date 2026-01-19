@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { label: "Producto", href: "#" },
   { label: "Características", href: "#features" },
   { label: "Integraciones", href: "#integrations" },
-  { label: "Precios", href: "#pricing" },
-  { label: "Docs", href: "#docs" },
+  { label: "Docs", href: "/docs", isRoute: true },
 ];
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <motion.header
