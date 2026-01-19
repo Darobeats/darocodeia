@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const CTA = () => {
   return (
@@ -36,16 +37,20 @@ const CTA = () => {
             <Button 
               size="lg" 
               className="group px-8 py-6 text-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-[0_0_30px_hsl(175_80%_50%_/_0.3)] hover:shadow-[0_0_50px_hsl(175_80%_50%_/_0.5)]"
+              asChild
             >
-              Empezar gratis
-              <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+              <Link to="/register">
+                Empezar gratis
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+              </Link>
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
               className="px-8 py-6 text-lg font-semibold border-border/50 bg-card/30 backdrop-blur-sm hover:bg-card/50 hover:border-primary/50 transition-all duration-300"
+              asChild
             >
-              Contactar ventas
+              <a href="mailto:ventas@darocode.com">Contactar ventas</a>
             </Button>
           </div>
 
