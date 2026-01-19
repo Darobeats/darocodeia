@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 interface ProjectCardProps {
   project: Project;
@@ -45,6 +46,7 @@ export function ProjectCard({
   onArchive,
   onDelete,
 }: ProjectCardProps) {
+  const navigate = useNavigate();
   const status = statusConfig[project.status || "active"] || statusConfig.active;
   const timeAgo = project.updated_at
     ? formatDistanceToNow(new Date(project.updated_at), {
@@ -53,8 +55,15 @@ export function ProjectCard({
       })
     : "N/A";
 
+  const handleCardClick = () => {
+    navigate(`/dashboard/projects/${project.id}`);
+  };
+
   return (
-    <Card className="bg-card/50 border-border hover:border-primary/30 transition-all duration-200 group">
+    <Card 
+      className="bg-card/50 border-border hover:border-primary/30 transition-all duration-200 group cursor-pointer"
+      onClick={handleCardClick}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
@@ -76,26 +85,27 @@ export function ProjectCard({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-card border-border">
-              <DropdownMenuItem onClick={() => onEdit(project)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(project); }}>
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDuplicate(project)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(project); }}>
                 <Copy className="w-4 h-4 mr-2" />
                 Duplicar
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onArchive(project)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(project); }}>
                 <Archive className="w-4 h-4 mr-2" />
                 {project.status === "archived" ? "Desarchivar" : "Archivar"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => onDelete(project)}
+                onClick={(e) => { e.stopPropagation(); onDelete(project); }}
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="w-4 h-4 mr-2" />

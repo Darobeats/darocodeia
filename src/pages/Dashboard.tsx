@@ -88,9 +88,9 @@ const Dashboard = () => {
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Overview", active: true, path: "/dashboard" },
     { icon: FolderKanban, label: "Proyectos", path: "/dashboard/projects" },
-    { icon: Users, label: "Equipo", path: "/dashboard" },
-    { icon: BarChart3, label: "Analytics", path: "/dashboard" },
-    { icon: Settings, label: "Configuración", path: "/dashboard" },
+    { icon: Users, label: "Equipo", path: "/dashboard/team" },
+    { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
+    { icon: Settings, label: "Configuración", path: "/dashboard/settings" },
   ];
 
   return (
