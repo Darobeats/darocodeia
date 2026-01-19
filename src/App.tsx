@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Docs from "./pages/Docs";
 import Dashboard from "./pages/Dashboard";
+import Projects from "./pages/Projects";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/docs" element={<Docs />} />
             <Route path="/docs/:section/:article" element={<Docs />} />
             <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
+            <Route path="/dashboard/projects" element={<AuthGuard><Projects /></AuthGuard>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
