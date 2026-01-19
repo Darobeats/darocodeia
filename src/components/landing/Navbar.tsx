@@ -52,11 +52,11 @@ const Navbar = () => {
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-4">
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-                Iniciar sesión
+              <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
+                <Link to="/login">Iniciar sesión</Link>
               </Button>
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(175_80%_50%_/_0.2)]">
-                Empezar gratis
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(175_80%_50%_/_0.2)]" asChild>
+                <Link to="/register">Empezar gratis</Link>
               </Button>
             </div>
 
@@ -94,11 +94,11 @@ const Navbar = () => {
                   </a>
                 ))}
                 <div className="flex flex-col gap-2 pt-4">
-                  <Button variant="outline" className="w-full">
-                    Iniciar sesión
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link to="/login">Iniciar sesión</Link>
                   </Button>
-                  <Button className="w-full bg-primary text-primary-foreground">
-                    Empezar gratis
+                  <Button className="w-full bg-primary text-primary-foreground" asChild>
+                    <Link to="/register">Empezar gratis</Link>
                   </Button>
                 </div>
               </div>
