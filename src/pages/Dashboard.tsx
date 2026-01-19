@@ -2,16 +2,27 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useProjects } from "@/hooks/useProjects";
+import { CreateProjectDialog } from "@/components/dashboard/CreateProjectDialog";
+import { EditProjectDialog } from "@/components/dashboard/EditProjectDialog";
+import { DeleteProjectDialog } from "@/components/dashboard/DeleteProjectDialog";
+import { Project } from "@/hooks/useProjects";
 import { 
   LayoutDashboard, FolderKanban, Users, BarChart3, Settings, Bell, 
   Search, LogOut, Plus, TrendingUp, GitCommit, Rocket, AlertCircle,
-  Activity, Clock, CheckCircle2
+  Activity, Clock, CheckCircle2, MoreVertical, Pencil, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface Notification {
@@ -23,24 +34,21 @@ interface Notification {
   created_at: string;
 }
 
-interface Project {
-  id: string;
-  name: string;
-  status: string;
-  commits_count: number;
-  deploys_count: number;
-  uptime_percentage: number;
-}
-
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { projects, loading: projectsLoading, createProject, updateProject, deleteProject } = useProjects();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Dialog states
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [deleteProjectState, setDeleteProjectState] = useState<Project | null>(null);
 
   useEffect(() => {
-    fetchData();
+    fetchNotifications();
     
     // Real-time notifications subscription
     const channel = supabase
@@ -53,21 +61,12 @@ const Dashboard = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const fetchData = async () => {
-    await Promise.all([fetchNotifications(), fetchProjects()]);
-  };
-
   const fetchNotifications = async () => {
     const { data } = await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(10);
     if (data) {
       setNotifications(data);
       setUnreadCount(data.filter(n => !n.read).length);
     }
-  };
-
-  const fetchProjects = async () => {
-    const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-    if (data) setProjects(data);
   };
 
   const markAsRead = async (id: string) => {
@@ -81,17 +80,17 @@ const Dashboard = () => {
 
   const stats = [
     { label: "Proyectos", value: projects.length, icon: FolderKanban, color: "text-primary" },
-    { label: "Commits", value: projects.reduce((a, p) => a + p.commits_count, 0), icon: GitCommit, color: "text-green-400" },
-    { label: "Deploys", value: projects.reduce((a, p) => a + p.deploys_count, 0), icon: Rocket, color: "text-blue-400" },
+    { label: "Commits", value: projects.reduce((a, p) => a + (p.commits_count || 0), 0), icon: GitCommit, color: "text-green-400" },
+    { label: "Deploys", value: projects.reduce((a, p) => a + (p.deploys_count || 0), 0), icon: Rocket, color: "text-blue-400" },
     { label: "Uptime", value: `${(projects.reduce((a, p) => a + (p.uptime_percentage || 100), 0) / (projects.length || 1)).toFixed(1)}%`, icon: TrendingUp, color: "text-accent" },
   ];
 
   const sidebarItems = [
-    { icon: LayoutDashboard, label: "Overview", active: true },
-    { icon: FolderKanban, label: "Proyectos" },
-    { icon: Users, label: "Equipo" },
-    { icon: BarChart3, label: "Analytics" },
-    { icon: Settings, label: "Configuración" },
+    { icon: LayoutDashboard, label: "Overview", active: true, path: "/dashboard" },
+    { icon: FolderKanban, label: "Proyectos", path: "/dashboard/projects" },
+    { icon: Users, label: "Equipo", path: "/dashboard" },
+    { icon: BarChart3, label: "Analytics", path: "/dashboard" },
+    { icon: Settings, label: "Configuración", path: "/dashboard" },
   ];
 
   return (
@@ -107,7 +106,11 @@ const Dashboard = () => {
 
         <nav className="flex-1 space-y-1">
           {sidebarItems.map((item) => (
-            <button key={item.label} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${item.active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary/50'}`}>
+            <button 
+              key={item.label} 
+              onClick={() => navigate(item.path)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${item.active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary/50'}`}
+            >
               <item.icon className="w-5 h-5" />
               {item.label}
             </button>
@@ -171,7 +174,9 @@ const Dashboard = () => {
                 <h1 className="text-2xl font-bold">Dashboard</h1>
                 <p className="text-muted-foreground">Bienvenido de vuelta, {user?.user_metadata?.full_name || 'Usuario'}</p>
               </div>
-              <Button className="bg-primary text-primary-foreground"><Plus className="w-4 h-4 mr-2" />Nuevo proyecto</Button>
+              <Button className="bg-primary text-primary-foreground" onClick={() => setCreateOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />Nuevo proyecto
+              </Button>
             </div>
 
             {/* Stats */}
@@ -192,17 +197,46 @@ const Dashboard = () => {
             {/* Projects & Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-card/50 border-border">
-                <CardHeader><CardTitle className="flex items-center gap-2"><FolderKanban className="w-5 h-5 text-primary" />Proyectos recientes</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderKanban className="w-5 h-5 text-primary" />Proyectos recientes
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/projects")}>
+                    Ver todos
+                  </Button>
+                </CardHeader>
                 <CardContent className="space-y-3">
                   {projects.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No hay proyectos aún. ¡Crea el primero!</p>
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">No hay proyectos aún. ¡Crea el primero!</p>
+                      <Button variant="outline" onClick={() => setCreateOpen(true)}>
+                        <Plus className="w-4 h-4 mr-2" />Crear proyecto
+                      </Button>
+                    </div>
                   ) : projects.slice(0, 4).map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                    <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors group">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-primary font-bold">{p.name[0]}</div>
-                        <div><p className="font-medium">{p.name}</p><p className="text-xs text-muted-foreground">{p.commits_count} commits</p></div>
+                        <div><p className="font-medium">{p.name}</p><p className="text-xs text-muted-foreground">{p.commits_count || 0} commits</p></div>
                       </div>
-                      <span className={`px-2 py-1 text-xs rounded-full ${p.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-muted text-muted-foreground'}`}>{p.status}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 text-xs rounded-full ${p.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-muted text-muted-foreground'}`}>{p.status}</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-card border-border">
+                            <DropdownMenuItem onClick={() => setEditProject(p)}>
+                              <Pencil className="w-4 h-4 mr-2" />Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDeleteProjectState(p)} className="text-destructive focus:text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" />Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   ))}
                 </CardContent>
@@ -229,6 +263,25 @@ const Dashboard = () => {
           </motion.div>
         </main>
       </div>
+
+      {/* Dialogs */}
+      <CreateProjectDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSubmit={createProject}
+      />
+      <EditProjectDialog
+        open={!!editProject}
+        onOpenChange={(open) => !open && setEditProject(null)}
+        project={editProject}
+        onSubmit={updateProject}
+      />
+      <DeleteProjectDialog
+        open={!!deleteProjectState}
+        onOpenChange={(open) => !open && setDeleteProjectState(null)}
+        project={deleteProjectState}
+        onConfirm={deleteProject}
+      />
     </div>
   );
 };
