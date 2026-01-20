@@ -9,6 +9,11 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import {
   ArrowLeft,
   Send,
   Loader2,
@@ -28,6 +33,7 @@ import { toast } from "sonner";
 import UrlPreviewCard, { DuplicationMode } from "@/components/editor/UrlPreviewCard";
 import LivePreview from "@/components/editor/LivePreview";
 import ProjectContextPanel from "@/components/editor/ProjectContextPanel";
+import CodeViewer from "@/components/editor/CodeViewer";
 import { useUrlDetection } from "@/hooks/useUrlDetection";
 import { useProjectContext } from "@/hooks/useProjectContext";
 import { firecrawlApi, ScrapedWebsite } from "@/lib/api/firecrawl";
@@ -453,11 +459,12 @@ ${data.markdown.slice(0, 8000)}
             </div>
 
             <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
-              <ScrollArea className="h-full">
+              <ScrollArea className="h-full bg-[#282c34]">
                 {selectedFile ? (
-                  <pre className="p-4 text-sm font-mono">
-                    <code>{selectedFile.content || "// Archivo vacío"}</code>
-                  </pre>
+                  <CodeViewer 
+                    code={selectedFile.content || "// Archivo vacío"} 
+                    language={selectedFile.language || "typescript"}
+                  />
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center">
@@ -470,7 +477,38 @@ ${data.markdown.slice(0, 8000)}
             </TabsContent>
 
             <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
-              <LivePreview files={files} />
+              <ResizablePanelGroup direction="horizontal">
+                {/* Code Panel */}
+                <ResizablePanel defaultSize={40} minSize={20}>
+                  <div className="h-full flex flex-col border-r border-border bg-[#282c34]">
+                    <div className="px-3 py-2 border-b border-border bg-muted/30">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {selectedFile?.file_path.split("/").pop() || "Código"}
+                      </span>
+                    </div>
+                    <ScrollArea className="flex-1">
+                      {selectedFile ? (
+                        <CodeViewer 
+                          code={selectedFile.content || ""} 
+                          language={selectedFile.language || "typescript"}
+                        />
+                      ) : (
+                        <div className="p-4 text-muted-foreground text-sm">
+                          Selecciona un archivo para ver el código
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </div>
+                </ResizablePanel>
+                
+                {/* Resizable Handle */}
+                <ResizableHandle withHandle />
+                
+                {/* Preview Panel */}
+                <ResizablePanel defaultSize={60} minSize={30}>
+                  <LivePreview files={files} />
+                </ResizablePanel>
+              </ResizablePanelGroup>
             </TabsContent>
 
             <TabsContent value="chat" className="flex-1 m-0 overflow-hidden">

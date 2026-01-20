@@ -23,6 +23,59 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Fetch project context (memory)
+    const { data: projectContext } = await supabase
+      .from("project_context")
+      .select("context_type, key, value")
+      .eq("project_id", projectId);
+
+    // Format project memory for the prompt
+    let projectMemoryPrompt = "";
+    if (projectContext && projectContext.length > 0) {
+      const sections: string[] = [];
+      
+      const techStack = projectContext.filter((c: { context_type: string }) => c.context_type === "tech_stack");
+      const styleGuide = projectContext.filter((c: { context_type: string }) => c.context_type === "style_guide");
+      const preferences = projectContext.filter((c: { context_type: string }) => c.context_type === "learned_preference");
+      const businessRules = projectContext.filter((c: { context_type: string }) => c.context_type === "business_rules");
+      
+      if (techStack.length > 0) {
+        sections.push(`TECH STACK:\n${techStack.map((t: { key: string; value: unknown }) => 
+          `- ${t.key}: ${JSON.stringify(t.value)}`
+        ).join("\n")}`);
+      }
+      
+      if (styleGuide.length > 0) {
+        sections.push(`STYLE GUIDE:\n${styleGuide.map((s: { key: string; value: unknown }) => 
+          `- ${s.key}: ${JSON.stringify(s.value)}`
+        ).join("\n")}`);
+      }
+      
+      if (preferences.length > 0) {
+        sections.push(`USER PREFERENCES:\n${preferences.map((p: { key: string; value: unknown }) => 
+          `- ${p.key}: ${JSON.stringify(p.value)}`
+        ).join("\n")}`);
+      }
+
+      if (businessRules.length > 0) {
+        sections.push(`BUSINESS RULES:\n${businessRules.map((b: { key: string; value: unknown }) => 
+          `- ${b.key}: ${JSON.stringify(b.value)}`
+        ).join("\n")}`);
+      }
+      
+      if (sections.length > 0) {
+        projectMemoryPrompt = `
+
+=== PROJECT MEMORY ===
+This project has learned preferences. ALWAYS maintain consistency with these guidelines:
+
+${sections.join("\n\n")}
+
+Use these project-specific settings when generating code.
+`;
+      }
+    }
+
     // Build context from existing files
     const existingFilesContext = existingFiles?.length > 0
       ? `\n\nExisting files in the project:\n${existingFiles.map((f: { path: string; content: string }) => 
@@ -61,7 +114,7 @@ IMPORTANT: Create components that closely match the original page structure, sty
 
     const systemPrompt = `You are an expert code generator for a web application builder. 
 You generate clean, modern, production-ready code based on user requests.
-
+${projectMemoryPrompt}
 When generating code:
 1. Use React with TypeScript
 2. Use Tailwind CSS for styling
