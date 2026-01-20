@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,9 @@ import {
   Folder,
 } from "lucide-react";
 import { toast } from "sonner";
+import UrlPreviewCard, { DuplicationMode } from "@/components/editor/UrlPreviewCard";
+import { useUrlDetection } from "@/hooks/useUrlDetection";
+import { firecrawlApi, ScrapedWebsite } from "@/lib/api/firecrawl";
 
 interface ProjectPrompt {
   id: string;
@@ -54,6 +57,16 @@ export default function ProjectEditor() {
   const [promptInput, setPromptInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("code");
+  const [showUrlPreview, setShowUrlPreview] = useState(false);
+  
+  const {
+    detectedUrl,
+    isAnalyzing,
+    scrapedData,
+    checkForUrl,
+    analyzeUrl,
+    clearUrl,
+  } = useUrlDetection();
 
   useEffect(() => {
     if (id) {
@@ -124,8 +137,122 @@ export default function ProjectEditor() {
     };
   };
 
+  // Handle prompt input change - check for URLs
+  const handlePromptInputChange = (value: string) => {
+    setPromptInput(value);
+    const url = checkForUrl(value);
+    if (url && !showUrlPreview) {
+      setShowUrlPreview(true);
+      analyzeUrl(url);
+    }
+  };
+
+  // Handle duplication from URL preview
+  const handleDuplicate = async (mode: DuplicationMode) => {
+    if (!scrapedData || !user) return;
+    
+    setShowUrlPreview(false);
+    
+    // Build enhanced prompt based on mode
+    const enhancedPrompt = buildDuplicationPrompt(promptInput, scrapedData, mode);
+    
+    setPromptInput("");
+    setIsGenerating(true);
+    clearUrl();
+
+    try {
+      const { data: promptData, error: promptError } = await supabase
+        .from("project_prompts")
+        .insert({
+          project_id: id,
+          user_id: user.id,
+          prompt: promptInput,
+          status: "processing",
+        })
+        .select()
+        .single();
+
+      if (promptError) throw promptError;
+
+      // Call edge function with website context
+      const { data, error } = await supabase.functions.invoke("generate-code", {
+        body: { 
+          prompt: enhancedPrompt, 
+          projectId: id, 
+          promptId: promptData.id,
+          existingFiles: files.map(f => ({ path: f.file_path, content: f.content })),
+          websiteContext: {
+            url: scrapedData.url,
+            markdown: scrapedData.markdown,
+            screenshot: scrapedData.screenshot,
+            branding: scrapedData.branding,
+            metadata: scrapedData.metadata,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      await fetchPrompts();
+      await fetchFiles();
+      
+      toast.success("Página duplicada correctamente");
+    } catch (error) {
+      console.error("Error duplicating page:", error);
+      toast.error("Error al duplicar la página");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Build duplication prompt based on mode
+  const buildDuplicationPrompt = (
+    originalPrompt: string, 
+    data: ScrapedWebsite, 
+    mode: DuplicationMode
+  ): string => {
+    const brandingInfo = firecrawlApi.formatBrandingForPrompt(data.branding);
+    
+    let modeInstructions = "";
+    switch (mode) {
+      case "structure":
+        modeInstructions = "Replica SOLO la estructura y layout de la página (componentes, secciones, disposición). Usa colores y contenido placeholder genérico.";
+        break;
+      case "content":
+        modeInstructions = "Replica la estructura Y el contenido (textos, imágenes). Usa colores por defecto del proyecto.";
+        break;
+      case "full":
+        modeInstructions = "Haz una réplica COMPLETA: estructura, contenido, colores exactos y tipografía. Debe verse lo más similar posible a la original.";
+        break;
+    }
+
+    return `${originalPrompt}
+
+=== INSTRUCCIONES DE DUPLICACIÓN ===
+${modeInstructions}
+
+=== INFORMACIÓN DE LA PÁGINA ORIGINAL ===
+URL: ${data.url}
+Título: ${data.metadata?.title || "Sin título"}
+Descripción: ${data.metadata?.description || "Sin descripción"}
+
+${brandingInfo ? `=== BRANDING EXTRAÍDO ===\n${brandingInfo}` : ""}
+
+=== CONTENIDO DE LA PÁGINA ===
+${data.markdown.slice(0, 8000)}
+`;
+  };
+
   const handleSendPrompt = async () => {
     if (!promptInput.trim() || isGenerating || !user) return;
+
+    // Check if there's a URL - show preview instead of sending directly
+    const url = checkForUrl(promptInput);
+    if (url && !showUrlPreview) {
+      setShowUrlPreview(true);
+      analyzeUrl(url);
+      return;
+    }
 
     const prompt = promptInput.trim();
     setPromptInput("");
@@ -169,6 +296,11 @@ export default function ProjectEditor() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleCancelUrlPreview = () => {
+    setShowUrlPreview(false);
+    clearUrl();
   };
 
   const getLanguageFromPath = (path: string): string => {
@@ -378,22 +510,38 @@ export default function ProjectEditor() {
 
       {/* Prompt Input */}
       <div className="border-t border-border p-4 bg-background shrink-0">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <Input
-            placeholder="Escribe tu prompt... Ej: Crea una landing page con hero y navbar"
-            value={promptInput}
-            onChange={(e) => setPromptInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendPrompt()}
-            disabled={isGenerating}
-            className="flex-1"
-          />
-          <Button onClick={handleSendPrompt} disabled={isGenerating || !promptInput.trim()}>
-            {isGenerating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
+        <div className="max-w-4xl mx-auto space-y-3">
+          {/* URL Preview Card */}
+          <AnimatePresence>
+            {showUrlPreview && detectedUrl && (
+              <UrlPreviewCard
+                url={detectedUrl}
+                isLoading={isAnalyzing}
+                scrapedData={scrapedData}
+                onDuplicate={handleDuplicate}
+                onCancel={handleCancelUrlPreview}
+              />
             )}
-          </Button>
+          </AnimatePresence>
+
+          {/* Input Row */}
+          <div className="flex gap-3">
+            <Input
+              placeholder="Escribe tu prompt... Ej: Duplica https://stripe.com o Crea una landing page"
+              value={promptInput}
+              onChange={(e) => handlePromptInputChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendPrompt()}
+              disabled={isGenerating}
+              className="flex-1"
+            />
+            <Button onClick={handleSendPrompt} disabled={isGenerating || !promptInput.trim()}>
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
