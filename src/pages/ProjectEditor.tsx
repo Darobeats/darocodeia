@@ -22,10 +22,14 @@ import {
   Plus,
   File,
   Folder,
+  Brain,
 } from "lucide-react";
 import { toast } from "sonner";
 import UrlPreviewCard, { DuplicationMode } from "@/components/editor/UrlPreviewCard";
+import LivePreview from "@/components/editor/LivePreview";
+import ProjectContextPanel from "@/components/editor/ProjectContextPanel";
 import { useUrlDetection } from "@/hooks/useUrlDetection";
+import { useProjectContext } from "@/hooks/useProjectContext";
 import { firecrawlApi, ScrapedWebsite } from "@/lib/api/firecrawl";
 
 interface ProjectPrompt {
@@ -58,7 +62,9 @@ export default function ProjectEditor() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("code");
   const [showUrlPreview, setShowUrlPreview] = useState(false);
+  const [showContextPanel, setShowContextPanel] = useState(false);
   
+  const { learnFromWebsite, learnFromGeneration, formatContextForPrompt, fetchContext } = useProjectContext(id);
   const {
     detectedUrl,
     isAnalyzing,
@@ -356,6 +362,14 @@ ${data.markdown.slice(0, 8000)}
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowContextPanel(!showContextPanel)}
+          >
+            <Brain className="w-4 h-4 mr-2" />
+            Memoria
+          </Button>
           <Button variant="outline" size="sm">
             <Settings className="w-4 h-4 mr-2" />
             Configurar
@@ -455,13 +469,8 @@ ${data.markdown.slice(0, 8000)}
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="preview" className="flex-1 m-0">
-              <div className="h-full flex items-center justify-center bg-secondary/30 text-muted-foreground">
-                <div className="text-center">
-                  <Eye className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Vista previa disponible próximamente</p>
-                </div>
-              </div>
+            <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
+              <LivePreview files={files} />
             </TabsContent>
 
             <TabsContent value="chat" className="flex-1 m-0 overflow-hidden">
