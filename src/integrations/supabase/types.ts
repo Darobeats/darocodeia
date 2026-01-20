@@ -89,6 +89,44 @@ export type Database = {
         }
         Relationships: []
       }
+      project_context: {
+        Row: {
+          context_type: string
+          created_at: string | null
+          id: string
+          key: string
+          project_id: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          context_type: string
+          created_at?: string | null
+          id?: string
+          key: string
+          project_id: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Update: {
+          context_type?: string
+          created_at?: string | null
+          id?: string
+          key?: string
+          project_id?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_context_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_files: {
         Row: {
           content: string | null
