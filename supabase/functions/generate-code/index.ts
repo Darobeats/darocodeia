@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, projectId, promptId, existingFiles } = await req.json();
+    const { prompt, projectId, promptId, existingFiles, websiteContext } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -29,6 +29,35 @@ serve(async (req) => {
           `--- ${f.path} ---\n${f.content || "(empty)"}`
         ).join("\n\n")}`
       : "";
+
+    // Build website context for duplication
+    let websiteContextPrompt = "";
+    if (websiteContext) {
+      const brandingInfo = websiteContext.branding ? `
+BRANDING INFORMATION:
+- Color Scheme: ${websiteContext.branding.colorScheme || "Unknown"}
+- Primary Color: ${websiteContext.branding.colors?.primary || "Not detected"}
+- Secondary Color: ${websiteContext.branding.colors?.secondary || "Not detected"}
+- Background: ${websiteContext.branding.colors?.background || "Not detected"}
+- Text Color: ${websiteContext.branding.colors?.textPrimary || "Not detected"}
+- Fonts: ${websiteContext.branding.fonts?.map((f: { family: string }) => f.family).join(", ") || "Not detected"}
+` : "";
+
+      websiteContextPrompt = `
+
+=== WEBSITE DUPLICATION CONTEXT ===
+The user wants to duplicate/replicate a webpage. Use the following information to create an accurate replica:
+
+Original URL: ${websiteContext.url}
+Title: ${websiteContext.metadata?.title || "Unknown"}
+Description: ${websiteContext.metadata?.description || "No description"}
+${brandingInfo}
+PAGE CONTENT (Markdown):
+${websiteContext.markdown?.slice(0, 10000) || "No content extracted"}
+
+IMPORTANT: Create components that closely match the original page structure, styling, and content. Use the exact colors and fonts detected when possible.
+`;
+    }
 
     const systemPrompt = `You are an expert code generator for a web application builder. 
 You generate clean, modern, production-ready code based on user requests.
@@ -59,7 +88,7 @@ Example response format:
   ]
 }
 
-Always respond in valid JSON format. Do not include markdown code blocks.${existingFilesContext}`;
+Always respond in valid JSON format. Do not include markdown code blocks.${existingFilesContext}${websiteContextPrompt}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
