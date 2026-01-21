@@ -28,14 +28,19 @@ import {
   File,
   Folder,
   Brain,
+  History,
+  GitCompare,
 } from "lucide-react";
 import { toast } from "sonner";
 import UrlPreviewCard, { DuplicationMode } from "@/components/editor/UrlPreviewCard";
-import LivePreview from "@/components/editor/LivePreview";
+import LiveCodeEditor from "@/components/editor/LiveCodeEditor";
 import ProjectContextPanel from "@/components/editor/ProjectContextPanel";
 import CodeViewer from "@/components/editor/CodeViewer";
+import DiffViewer from "@/components/editor/DiffViewer";
+import VersionHistory from "@/components/editor/VersionHistory";
 import { useUrlDetection } from "@/hooks/useUrlDetection";
 import { useProjectContext } from "@/hooks/useProjectContext";
+import { useFileVersions, FileVersion } from "@/hooks/useFileVersions";
 import { firecrawlApi, ScrapedWebsite } from "@/lib/api/firecrawl";
 
 interface ProjectPrompt {
@@ -53,6 +58,13 @@ interface ProjectFile {
   language: string | null;
 }
 
+interface PendingChange {
+  fileId: string | null;
+  filePath: string;
+  oldContent: string;
+  newContent: string;
+}
+
 export default function ProjectEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -67,10 +79,20 @@ export default function ProjectEditor() {
   const [promptInput, setPromptInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("code");
+  const [historyTab, setHistoryTab] = useState<"chat" | "versions">("chat");
   const [showUrlPreview, setShowUrlPreview] = useState(false);
   const [showContextPanel, setShowContextPanel] = useState(false);
   
+  // Diff viewer state
+  const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
+  const [currentDiffIndex, setCurrentDiffIndex] = useState(0);
+  const [showDiff, setShowDiff] = useState(false);
+  
+  // Version history state
+  const [selectedVersion, setSelectedVersion] = useState<FileVersion | null>(null);
+  
   const { learnFromWebsite, learnFromGeneration, formatContextForPrompt, fetchContext } = useProjectContext(id);
+  const { createVersion } = useFileVersions(id);
   const {
     detectedUrl,
     isAnalyzing,
@@ -315,6 +337,136 @@ ${data.markdown.slice(0, 8000)}
     clearUrl();
   };
 
+  // Handle live code editing changes
+  const handleFileChange = async (filePath: string, content: string) => {
+    if (!id || !user) return;
+    
+    // Find the existing file
+    const existingFile = files.find(f => f.file_path === filePath);
+    
+    if (existingFile) {
+      // Create a version before updating
+      if (existingFile.content !== content) {
+        await createVersion(
+          existingFile.id,
+          existingFile.file_path,
+          existingFile.content || "",
+          "manual",
+          "Edición manual"
+        );
+      }
+      
+      // Update the file in database
+      await supabase
+        .from("project_files")
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq("id", existingFile.id);
+      
+      // Update local state
+      setFiles(prev => prev.map(f => 
+        f.id === existingFile.id ? { ...f, content } : f
+      ));
+    }
+  };
+
+  // Handle accepting a diff change
+  const handleAcceptChange = async () => {
+    if (pendingChanges.length === 0) return;
+    
+    const change = pendingChanges[currentDiffIndex];
+    
+    // Create version of old content
+    if (change.fileId) {
+      await createVersion(
+        change.fileId,
+        change.filePath,
+        change.oldContent,
+        "ai_generated",
+        "Cambio generado por IA"
+      );
+    }
+    
+    // Update the file with new content
+    const existingFile = files.find(f => f.file_path === change.filePath);
+    if (existingFile) {
+      await supabase
+        .from("project_files")
+        .update({ content: change.newContent })
+        .eq("id", existingFile.id);
+    }
+    
+    // Move to next change or close diff view
+    if (currentDiffIndex < pendingChanges.length - 1) {
+      setCurrentDiffIndex(prev => prev + 1);
+    } else {
+      setShowDiff(false);
+      setPendingChanges([]);
+      setCurrentDiffIndex(0);
+      await fetchFiles();
+      toast.success("Todos los cambios aceptados");
+    }
+  };
+
+  // Handle rejecting a diff change
+  const handleRejectChange = () => {
+    // Move to next change or close diff view
+    if (currentDiffIndex < pendingChanges.length - 1) {
+      setCurrentDiffIndex(prev => prev + 1);
+    } else {
+      setShowDiff(false);
+      setPendingChanges([]);
+      setCurrentDiffIndex(0);
+      toast.info("Cambios rechazados");
+    }
+  };
+
+  // Handle restoring a version
+  const handleRestoreVersion = async (filePath: string, content: string) => {
+    const existingFile = files.find(f => f.file_path === filePath);
+    
+    if (existingFile) {
+      // Create version of current content before restoring
+      await createVersion(
+        existingFile.id,
+        existingFile.file_path,
+        existingFile.content || "",
+        "manual",
+        "Antes de restauración"
+      );
+      
+      // Update file with restored content
+      await supabase
+        .from("project_files")
+        .update({ content })
+        .eq("id", existingFile.id);
+      
+      // Update local state
+      setFiles(prev => prev.map(f => 
+        f.id === existingFile.id ? { ...f, content } : f
+      ));
+      
+      toast.success("Versión restaurada");
+    }
+  };
+
+  // Handle selecting a version to view
+  const handleSelectVersion = (version: FileVersion) => {
+    setSelectedVersion(version);
+    // If the file exists, show a diff between current and selected version
+    const currentFile = files.find(f => f.file_path === version.file_path);
+    if (currentFile && version.content !== currentFile.content) {
+      setPendingChanges([{
+        fileId: currentFile.id,
+        filePath: version.file_path,
+        oldContent: currentFile.content || "",
+        newContent: version.content || "",
+      }]);
+      setCurrentDiffIndex(0);
+      setShowDiff(true);
+      setActiveTab("preview");
+    }
+  };
+
   const getLanguageFromPath = (path: string): string => {
     const ext = path.split(".").pop()?.toLowerCase();
     const langMap: Record<string, string> = {
@@ -477,79 +629,99 @@ ${data.markdown.slice(0, 8000)}
             </TabsContent>
 
             <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
-              <ResizablePanelGroup direction="horizontal">
-                {/* Code Panel */}
-                <ResizablePanel defaultSize={40} minSize={20}>
-                  <div className="h-full flex flex-col border-r border-border bg-[#282c34]">
-                    <div className="px-3 py-2 border-b border-border bg-muted/30">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {selectedFile?.file_path.split("/").pop() || "Código"}
-                      </span>
-                    </div>
-                    <ScrollArea className="flex-1">
-                      {selectedFile ? (
-                        <CodeViewer 
-                          code={selectedFile.content || ""} 
-                          language={selectedFile.language || "typescript"}
-                        />
-                      ) : (
-                        <div className="p-4 text-muted-foreground text-sm">
-                          Selecciona un archivo para ver el código
-                        </div>
-                      )}
-                    </ScrollArea>
-                  </div>
-                </ResizablePanel>
-                
-                {/* Resizable Handle */}
-                <ResizableHandle withHandle />
-                
-                {/* Preview Panel */}
-                <ResizablePanel defaultSize={60} minSize={30}>
-                  <LivePreview files={files} />
-                </ResizablePanel>
-              </ResizablePanelGroup>
+              {showDiff && pendingChanges.length > 0 ? (
+                <DiffViewer
+                  oldCode={pendingChanges[currentDiffIndex]?.oldContent || ""}
+                  newCode={pendingChanges[currentDiffIndex]?.newContent || ""}
+                  fileName={pendingChanges[currentDiffIndex]?.filePath || ""}
+                  onAccept={handleAcceptChange}
+                  onReject={handleRejectChange}
+                />
+              ) : (
+                <LiveCodeEditor 
+                  files={files} 
+                  onFileChange={handleFileChange}
+                />
+              )}
             </TabsContent>
 
-            <TabsContent value="chat" className="flex-1 m-0 overflow-hidden">
-              <ScrollArea className="h-full">
-                <div className="p-4 space-y-4">
-                  {prompts.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No hay mensajes aún</p>
-                      <p className="text-sm mt-1">Envía tu primer prompt para comenzar</p>
-                    </div>
-                  ) : (
-                    prompts.map((p) => (
-                      <div key={p.id} className="space-y-3">
-                        {/* User prompt */}
-                        <div className="flex justify-end">
-                          <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 max-w-[80%]">
-                            <p className="text-sm">{p.prompt}</p>
-                          </div>
-                        </div>
-                        {/* AI response */}
-                        {p.response && (
-                          <div className="flex justify-start">
-                            <div className="bg-secondary/50 rounded-lg px-4 py-2 max-w-[80%]">
-                              <p className="text-sm whitespace-pre-wrap">{p.response}</p>
-                            </div>
-                          </div>
-                        )}
-                        {p.status === "processing" && (
-                          <div className="flex justify-start">
-                            <div className="bg-secondary/50 rounded-lg px-4 py-2">
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                  <div ref={chatEndRef} />
+            <TabsContent value="chat" className="flex-1 m-0 overflow-hidden flex flex-col">
+              {/* Sub-tabs for chat and versions */}
+              <div className="border-b border-border px-4">
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setHistoryTab("chat")}
+                    className={`py-2 text-sm font-medium border-b-2 transition-colors ${
+                      historyTab === "chat"
+                        ? "border-primary text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4 inline-block mr-2" />
+                    Conversación
+                  </button>
+                  <button
+                    onClick={() => setHistoryTab("versions")}
+                    className={`py-2 text-sm font-medium border-b-2 transition-colors ${
+                      historyTab === "versions"
+                        ? "border-primary text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <History className="w-4 h-4 inline-block mr-2" />
+                    Versiones
+                  </button>
                 </div>
-              </ScrollArea>
+              </div>
+
+              {historyTab === "chat" ? (
+                <ScrollArea className="flex-1">
+                  <div className="p-4 space-y-4">
+                    {prompts.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No hay mensajes aún</p>
+                        <p className="text-sm mt-1">Envía tu primer prompt para comenzar</p>
+                      </div>
+                    ) : (
+                      prompts.map((p) => (
+                        <div key={p.id} className="space-y-3">
+                          {/* User prompt */}
+                          <div className="flex justify-end">
+                            <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 max-w-[80%]">
+                              <p className="text-sm">{p.prompt}</p>
+                            </div>
+                          </div>
+                          {/* AI response */}
+                          {p.response && (
+                            <div className="flex justify-start">
+                              <div className="bg-secondary/50 rounded-lg px-4 py-2 max-w-[80%]">
+                                <p className="text-sm whitespace-pre-wrap">{p.response}</p>
+                              </div>
+                            </div>
+                          )}
+                          {p.status === "processing" && (
+                            <div className="flex justify-start">
+                              <div className="bg-secondary/50 rounded-lg px-4 py-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+                </ScrollArea>
+              ) : (
+                <VersionHistory
+                  projectId={id || ""}
+                  selectedFileId={selectedFile?.id}
+                  selectedFilePath={selectedFile?.file_path}
+                  onRestore={handleRestoreVersion}
+                  onSelectVersion={handleSelectVersion}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>

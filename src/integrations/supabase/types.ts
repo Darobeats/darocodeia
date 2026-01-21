@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      file_versions: {
+        Row: {
+          change_description: string | null
+          change_type: string | null
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          file_id: string | null
+          file_path: string
+          id: string
+          project_id: string
+          version_number: number
+        }
+        Insert: {
+          change_description?: string | null
+          change_type?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          file_id?: string | null
+          file_path: string
+          id?: string
+          project_id: string
+          version_number?: number
+        }
+        Update: {
+          change_description?: string | null
+          change_type?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          file_id?: string | null
+          file_path?: string
+          id?: string
+          project_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_versions_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "project_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string | null
