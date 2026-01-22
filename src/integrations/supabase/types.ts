@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      code_snippets: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_public: boolean | null
+          language: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          language?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          language?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       file_versions: {
         Row: {
           change_description: string | null
@@ -60,6 +102,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      github_connections: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          github_username: string
+          id: string
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          github_username: string
+          id?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          github_username?: string
+          id?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       notifications: {
         Row: {

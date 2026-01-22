@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft,
   Send,
@@ -20,7 +22,7 @@ import {
   FileCode,
   FolderTree,
   MessageSquare,
-  Code,
+  Code as CodeIcon,
   Eye,
   Settings,
   Rocket,
@@ -29,7 +31,10 @@ import {
   Folder,
   Brain,
   History,
-  GitCompare,
+  Download,
+  Github,
+  Globe,
+  Code,
 } from "lucide-react";
 import { toast } from "sonner";
 import UrlPreviewCard, { DuplicationMode } from "@/components/editor/UrlPreviewCard";
@@ -38,9 +43,12 @@ import ProjectContextPanel from "@/components/editor/ProjectContextPanel";
 import CodeViewer from "@/components/editor/CodeViewer";
 import DiffViewer from "@/components/editor/DiffViewer";
 import VersionHistory from "@/components/editor/VersionHistory";
+import SnippetsPanel from "@/components/editor/SnippetsPanel";
+import GitHubExportDialog from "@/components/editor/GitHubExportDialog";
 import { useUrlDetection } from "@/hooks/useUrlDetection";
 import { useProjectContext } from "@/hooks/useProjectContext";
 import { useFileVersions, FileVersion } from "@/hooks/useFileVersions";
+import { useExportProject } from "@/hooks/useExportProject";
 import { firecrawlApi, ScrapedWebsite } from "@/lib/api/firecrawl";
 
 interface ProjectPrompt {
@@ -82,6 +90,8 @@ export default function ProjectEditor() {
   const [historyTab, setHistoryTab] = useState<"chat" | "versions">("chat");
   const [showUrlPreview, setShowUrlPreview] = useState(false);
   const [showContextPanel, setShowContextPanel] = useState(false);
+  const [showSnippets, setShowSnippets] = useState(false);
+  const [showGitHubDialog, setShowGitHubDialog] = useState(false);
   
   // Diff viewer state
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
@@ -93,6 +103,7 @@ export default function ProjectEditor() {
   
   const { learnFromWebsite, learnFromGeneration, formatContextForPrompt, fetchContext } = useProjectContext(id);
   const { createVersion } = useFileVersions(id);
+  const { exportAsZip, isExporting } = useExportProject();
   const {
     detectedUrl,
     isAnalyzing,
@@ -101,6 +112,26 @@ export default function ProjectEditor() {
     analyzeUrl,
     clearUrl,
   } = useUrlDetection();
+
+  // Handle export as ZIP
+  const handleExportZip = async (includeConfig: boolean = true) => {
+    if (!project) return;
+    try {
+      await exportAsZip(project.name, files, {
+        includeReadme: true,
+        includePackageJson: includeConfig,
+        includeViteConfig: includeConfig,
+      });
+      toast.success("Proyecto exportado como ZIP");
+    } catch {
+      toast.error("Error al exportar proyecto");
+    }
+  };
+
+  // Handle snippet insertion
+  const handleInsertSnippet = (code: string) => {
+    setPromptInput((prev) => prev + "\n\n```\n" + code + "\n```");
+  };
 
   useEffect(() => {
     if (id) {
@@ -528,14 +559,46 @@ ${data.markdown.slice(0, 8000)}
             <Brain className="w-4 h-4 mr-2" />
             Memoria
           </Button>
-          <Button variant="outline" size="sm">
-            <Settings className="w-4 h-4 mr-2" />
-            Configurar
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowSnippets(true)}
+          >
+            <Code className="w-4 h-4 mr-2" />
+            Snippets
           </Button>
-          <Button size="sm">
-            <Rocket className="w-4 h-4 mr-2" />
-            Deploy
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" disabled={isExporting}>
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Rocket className="w-4 h-4 mr-2" />
+                )}
+                Deploy
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExportZip(false)}>
+                <Download className="w-4 h-4 mr-2" />
+                Descargar ZIP
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportZip(true)}>
+                <Download className="w-4 h-4 mr-2" />
+                ZIP + Configuración
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowGitHubDialog(true)}>
+                <Github className="w-4 h-4 mr-2" />
+                Subir a GitHub
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>
+                <Globe className="w-4 h-4 mr-2" />
+                Deploy a Vercel (próximamente)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -595,8 +658,8 @@ ${data.markdown.slice(0, 8000)}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="border-b border-border px-4">
               <TabsList className="bg-transparent h-10">
-                <TabsTrigger value="code" className="flex items-center gap-2">
-                  <Code className="w-4 h-4" />
+              <TabsTrigger value="code" className="flex items-center gap-2">
+                  <CodeIcon className="w-4 h-4" />
                   Código
                 </TabsTrigger>
                 <TabsTrigger value="preview" className="flex items-center gap-2">
@@ -763,6 +826,22 @@ ${data.markdown.slice(0, 8000)}
           </div>
         </div>
       </div>
+
+      {/* Snippets Panel */}
+      <SnippetsPanel
+        isOpen={showSnippets}
+        onClose={() => setShowSnippets(false)}
+        onInsert={handleInsertSnippet}
+      />
+
+      {/* GitHub Export Dialog */}
+      <GitHubExportDialog
+        isOpen={showGitHubDialog}
+        onClose={() => setShowGitHubDialog(false)}
+        projectName={project?.name || ""}
+        projectDescription={project?.description || ""}
+        files={files}
+      />
     </div>
   );
 }
