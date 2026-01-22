@@ -58,8 +58,10 @@ export function TemplateSelector({
       // Parse files JSON and cast to proper type
       const parsedTemplates = (data || []).map((t) => ({
         ...t,
-        files: Array.isArray(t.files) ? t.files : [],
-      })) as ProjectTemplate[];
+        files: (Array.isArray(t.files) ? t.files : []) as Array<{ file_path: string; content: string; language: string }>,
+      }));
+
+      setTemplates(parsedTemplates as ProjectTemplate[]);
 
       setTemplates(parsedTemplates);
     } catch (err) {
