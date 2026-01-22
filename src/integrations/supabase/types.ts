@@ -325,6 +325,39 @@ export type Database = {
           },
         ]
       }
+      project_templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          files: Json
+          id: string
+          is_premium: boolean | null
+          name: string
+          thumbnail_url: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          files?: Json
+          id?: string
+          is_premium?: boolean | null
+          name: string
+          thumbnail_url?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          files?: Json
+          id?: string
+          is_premium?: boolean | null
+          name?: string
+          thumbnail_url?: string | null
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           commits_count: number | null
