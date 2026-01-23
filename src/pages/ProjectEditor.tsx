@@ -35,6 +35,7 @@ import {
   Github,
   Globe,
   Code,
+  Image,
 } from "lucide-react";
 import { toast } from "sonner";
 import UrlPreviewCard, { DuplicationMode } from "@/components/editor/UrlPreviewCard";
@@ -45,6 +46,7 @@ import DiffViewer from "@/components/editor/DiffViewer";
 import VersionHistory from "@/components/editor/VersionHistory";
 import SnippetsPanel from "@/components/editor/SnippetsPanel";
 import GitHubExportDialog from "@/components/editor/GitHubExportDialog";
+import { NewFileDialog } from "@/components/editor/NewFileDialog";
 import { useUrlDetection } from "@/hooks/useUrlDetection";
 import { useProjectContext } from "@/hooks/useProjectContext";
 import { useFileVersions, FileVersion } from "@/hooks/useFileVersions";
@@ -92,6 +94,7 @@ export default function ProjectEditor() {
   const [showContextPanel, setShowContextPanel] = useState(false);
   const [showSnippets, setShowSnippets] = useState(false);
   const [showGitHubDialog, setShowGitHubDialog] = useState(false);
+  const [showNewFileDialog, setShowNewFileDialog] = useState(false);
   
   // Diff viewer state
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
@@ -308,6 +311,13 @@ ${data.markdown.slice(0, 8000)}
 `;
   };
 
+  // Get reference images from project files
+  const getReferenceImages = () => {
+    return files
+      .filter(f => f.language === "image" && f.file_path.startsWith("references/"))
+      .map(f => ({ url: f.content || "", name: f.file_path }));
+  };
+
   const handleSendPrompt = async () => {
     if (!promptInput.trim() || isGenerating || !user) return;
 
@@ -322,6 +332,9 @@ ${data.markdown.slice(0, 8000)}
     const prompt = promptInput.trim();
     setPromptInput("");
     setIsGenerating(true);
+
+    // Get reference images
+    const referenceImages = getReferenceImages();
 
     try {
       // Create prompt record
@@ -338,13 +351,14 @@ ${data.markdown.slice(0, 8000)}
 
       if (promptError) throw promptError;
 
-      // Call edge function to generate code
+      // Call edge function to generate code with reference images
       const { data, error } = await supabase.functions.invoke("generate-code", {
         body: { 
           prompt, 
           projectId: id, 
           promptId: promptData.id,
-          existingFiles: files.map(f => ({ path: f.file_path, content: f.content }))
+          existingFiles: files.map(f => ({ path: f.file_path, content: f.content })),
+          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
         },
       });
 
@@ -611,7 +625,12 @@ ${data.markdown.slice(0, 8000)}
               <FolderTree className="w-4 h-4" />
               Archivos
             </span>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7"
+              onClick={() => setShowNewFileDialog(true)}
+            >
               <Plus className="w-4 h-4" />
             </Button>
           </div>
@@ -806,10 +825,21 @@ ${data.markdown.slice(0, 8000)}
             )}
           </AnimatePresence>
 
+          {/* Reference Images Indicator */}
+          {getReferenceImages().length > 0 && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/50 rounded-md px-3 py-2">
+              <Image className="w-4 h-4 text-primary" />
+              <span>{getReferenceImages().length} imagen(es) de referencia activa(s)</span>
+              <span className="text-primary">• La IA usará estas imágenes como guía visual</span>
+            </div>
+          )}
+
           {/* Input Row */}
           <div className="flex gap-3">
             <Input
-              placeholder="Escribe tu prompt... Ej: Duplica https://stripe.com o Crea una landing page"
+              placeholder={getReferenceImages().length > 0 
+                ? "Describe qué quieres crear basándote en las imágenes de referencia..." 
+                : "Escribe tu prompt... Ej: Duplica https://stripe.com o Crea una landing page"}
               value={promptInput}
               onChange={(e) => handlePromptInputChange(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendPrompt()}
@@ -841,6 +871,21 @@ ${data.markdown.slice(0, 8000)}
         projectName={project?.name || ""}
         projectDescription={project?.description || ""}
         files={files}
+      />
+
+      {/* New File Dialog */}
+      <NewFileDialog
+        open={showNewFileDialog}
+        onOpenChange={setShowNewFileDialog}
+        projectId={id || ""}
+        onFileCreated={(filePath, content, isImage) => {
+          fetchFiles();
+          if (isImage) {
+            toast.info("💡 La imagen se usará como referencia visual en tus próximos prompts", {
+              duration: 5000,
+            });
+          }
+        }}
       />
     </div>
   );
