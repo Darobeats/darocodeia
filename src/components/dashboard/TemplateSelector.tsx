@@ -62,8 +62,6 @@ export function TemplateSelector({
       }));
 
       setTemplates(parsedTemplates as ProjectTemplate[]);
-
-      setTemplates(parsedTemplates);
     } catch (err) {
       console.error("Error fetching templates:", err);
     } finally {

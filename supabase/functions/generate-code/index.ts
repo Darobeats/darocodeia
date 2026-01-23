@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, projectId, promptId, existingFiles, websiteContext } = await req.json();
+    const { prompt, projectId, promptId, existingFiles, websiteContext, referenceImages } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -112,9 +112,23 @@ IMPORTANT: Create components that closely match the original page structure, sty
 `;
     }
 
+    // Build image reference instructions if images are provided
+    const imageInstructions = referenceImages?.length > 0
+      ? `
+
+IMPORTANT - REFERENCE IMAGES PROVIDED:
+The user has provided ${referenceImages.length} reference image(s) for visual guidance.
+- Carefully analyze the design, colors, layout, typography, spacing, and UI patterns visible in the image(s).
+- Replicate the visual style as closely as possible using Tailwind CSS.
+- Extract and use the exact colors visible in the images.
+- Match the component structure and hierarchy shown in the design.
+- Pay attention to shadows, borders, border-radius, and other visual details.
+`
+      : "";
+
     const systemPrompt = `You are an expert code generator for a web application builder. 
 You generate clean, modern, production-ready code based on user requests.
-${projectMemoryPrompt}
+${projectMemoryPrompt}${imageInstructions}
 When generating code:
 1. Use React with TypeScript
 2. Use Tailwind CSS for styling
@@ -143,6 +157,21 @@ Example response format:
 
 Always respond in valid JSON format. Do not include markdown code blocks.${existingFilesContext}${websiteContextPrompt}`;
 
+    // Build user message - multimodal if images are provided
+    type MessageContent = string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    
+    let userMessageContent: MessageContent = prompt;
+    
+    if (referenceImages?.length > 0) {
+      userMessageContent = [
+        { type: "text", text: prompt },
+        ...referenceImages.map((img: { url: string; name: string }) => ({
+          type: "image_url",
+          image_url: { url: img.url }
+        }))
+      ];
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -153,7 +182,7 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
+          { role: "user", content: userMessageContent },
         ],
       }),
     });
