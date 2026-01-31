@@ -366,9 +366,13 @@ export type Database = {
           description: string | null
           errors_count: number | null
           id: string
+          is_public: boolean | null
           last_deploy_at: string | null
           name: string
+          preview_url: string | null
           status: string | null
+          technologies: string[] | null
+          thumbnail_url: string | null
           updated_at: string | null
           uptime_percentage: number | null
           user_id: string
@@ -380,9 +384,13 @@ export type Database = {
           description?: string | null
           errors_count?: number | null
           id?: string
+          is_public?: boolean | null
           last_deploy_at?: string | null
           name: string
+          preview_url?: string | null
           status?: string | null
+          technologies?: string[] | null
+          thumbnail_url?: string | null
           updated_at?: string | null
           uptime_percentage?: number | null
           user_id: string
@@ -394,9 +402,13 @@ export type Database = {
           description?: string | null
           errors_count?: number | null
           id?: string
+          is_public?: boolean | null
           last_deploy_at?: string | null
           name?: string
+          preview_url?: string | null
           status?: string | null
+          technologies?: string[] | null
+          thumbnail_url?: string | null
           updated_at?: string | null
           uptime_percentage?: number | null
           user_id?: string
