@@ -16,6 +16,10 @@ export interface Project {
   created_at: string | null;
   updated_at: string | null;
   user_id: string;
+  is_public: boolean | null;
+  preview_url: string | null;
+  thumbnail_url: string | null;
+  technologies: string[] | null;
 }
 
 export interface CreateProjectData {
@@ -28,6 +32,10 @@ export interface UpdateProjectData {
   name?: string;
   description?: string;
   status?: string;
+  is_public?: boolean;
+  preview_url?: string;
+  thumbnail_url?: string;
+  technologies?: string[];
 }
 
 export function useProjects() {
