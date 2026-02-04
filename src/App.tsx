@@ -21,6 +21,7 @@ import ProjectEditor from "./pages/ProjectEditor";
 
 const queryClient = new QueryClient();
 
+// Main application component with proper provider hierarchy
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
