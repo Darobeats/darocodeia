@@ -1,272 +1,245 @@
 
-# Plan: Portfolio Publico en Landing Page
+# Plan de Implementación: Chatbot Inteligente + Sistema de Internacionalización
 
-## Resumen
+## Resumen Ejecutivo
 
-Transformare la pagina principal en un portfolio que muestre los proyectos marcados como publicos por los usuarios, presentados en un carrusel interactivo con animaciones fluidas.
-
----
-
-## Parte 1: Actualizar Esquema de Base de Datos
-
-### Nueva Migracion SQL
-
-Agregare campos a la tabla `projects` para soportar proyectos publicos:
-
-```sql
-ALTER TABLE projects ADD COLUMN is_public BOOLEAN DEFAULT false;
-ALTER TABLE projects ADD COLUMN preview_url TEXT;
-ALTER TABLE projects ADD COLUMN thumbnail_url TEXT;
-ALTER TABLE projects ADD COLUMN technologies TEXT[] DEFAULT '{}';
-
--- Politica RLS para permitir lectura de proyectos publicos
-CREATE POLICY "Public projects are viewable by everyone"
-  ON projects FOR SELECT
-  USING (is_public = true);
-```
-
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `is_public` | boolean | Si el proyecto es visible en el portfolio |
-| `preview_url` | text | URL del sitio desplegado |
-| `thumbnail_url` | text | Captura de pantalla del proyecto |
-| `technologies` | text[] | Array de tecnologias usadas (React, Tailwind, etc.) |
+Este plan implementa dos funcionalidades clave:
+1. **Chatbot Inteligente "Daro Assistant"**: Un asistente conversacional que entiende el contexto de la aplicación y los proyectos públicos
+2. **Sistema de Idiomas (i18n)**: Soporte multilingüe con detección automática y cambio manual entre Español e Inglés
 
 ---
 
-## Parte 2: Nuevo Componente - Carrusel de Portfolio
+## Parte 1: Chatbot Inteligente "Daro Assistant"
 
-### Archivo: `src/components/landing/Portfolio.tsx`
+### Visión del Producto
+Un chatbot flotante disponible en toda la aplicación que:
+- Responde dudas sobre la plataforma DaroCode
+- Explica características y flujos de trabajo
+- Proporciona información sobre proyectos públicos del portfolio
+- Guía a usuarios nuevos en el onboarding
+- Tiene personalidad cercana y profesional
 
-Carrusel horizontal interactivo usando Embla Carousel (ya instalado como `embla-carousel-react`):
+### Arquitectura del Chatbot
 
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                     FRONTEND (React)                        │
+├─────────────────────────────────────────────────────────────┤
+│  ChatWidget (Floating)                                      │
+│    ├── ChatButton (trigger)                                 │
+│    ├── ChatWindow                                           │
+│    │     ├── ChatHeader                                     │
+│    │     ├── MessageList                                    │
+│    │     │     ├── UserMessage                              │
+│    │     │     └── AssistantMessage (con Markdown)          │
+│    │     ├── SuggestionChips                                │
+│    │     └── ChatInput                                      │
+│    └── Context Provider (idioma, proyectos, docs)           │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   EDGE FUNCTION: chat-assistant             │
+├─────────────────────────────────────────────────────────────┤
+│  1. Recibe mensaje + contexto (idioma, página actual)       │
+│  2. Construye system prompt con:                            │
+│     ├── Documentación de DaroCode                           │
+│     ├── Proyectos públicos actuales (de DB)                 │
+│     ├── Contexto de navegación                              │
+│     └── Idioma del usuario                                  │
+│  3. Llama a Lovable AI (streaming)                          │
+│  4. Retorna respuesta en tiempo real                        │
+└─────────────────────────────────────────────────────────────┘
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                           PORTFOLIO                                       │
-│                                                                          │
-│  Proyectos destacados                                                    │
-│  Trabajos realizados por nuestra comunidad                               │
-│                                                                          │
-│  ◄  ┌─────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐  ►      │
-│     │ Card    │ │   Card      │ │    Card     │ │   Card      │          │
-│     │ Activa  │ │   Normal    │ │   Normal    │ │   Normal    │          │
-│     │ (hover) │ │             │ │             │ │             │          │
-│     │         │ │  Proyecto   │ │  Proyecto   │ │  Proyecto   │          │
-│     │ [IMG]   │ │    [IMG]    │ │   [IMG]     │ │   [IMG]     │          │
-│     │         │ │             │ │             │ │             │          │
-│     │ Nombre  │ │   Nombre    │ │  Nombre     │ │   Nombre    │          │
-│     │ Desc... │ │   React     │ │  Tailwind   │ │   React     │          │
-│     │ [Ver]   │ │             │ │             │ │             │          │
-│     └─────────┘ └─────────────┘ └─────────────┘ └─────────────┘          │
-│                                                                          │
-│                    ○ ○ ● ○ ○  (indicadores)                              │
-└──────────────────────────────────────────────────────────────────────────┘
+
+### Componentes a Crear
+
+| Archivo | Descripción |
+|---------|-------------|
+| `src/components/chat/ChatWidget.tsx` | Widget flotante principal |
+| `src/components/chat/ChatWindow.tsx` | Ventana de conversación |
+| `src/components/chat/ChatMessage.tsx` | Renderizado de mensajes con Markdown |
+| `src/components/chat/ChatInput.tsx` | Input con sugerencias rápidas |
+| `src/components/chat/SuggestionChips.tsx` | Chips de preguntas frecuentes |
+| `src/hooks/useChatAssistant.ts` | Hook para lógica del chat + streaming |
+| `supabase/functions/chat-assistant/index.ts` | Edge function con contexto |
+
+### Flujo de Conversación
+
+1. **Usuario abre el chat** → Saludo personalizado según contexto
+2. **Sugerencias iniciales** basadas en la página actual:
+   - Landing: "¿Qué es DaroCode?", "Ver proyectos destacados"
+   - Docs: "Buscar en documentación", "¿Cómo empezar?"
+   - Dashboard: "¿Cómo crear un proyecto?", "Ayuda con GitHub"
+3. **Respuestas contextuales** que conocen:
+   - Toda la documentación
+   - Proyectos públicos con sus tecnologías
+   - Flujos de la aplicación
+
+### System Prompt del Chatbot
+
+```text
+Eres "Daro", el asistente virtual de DaroCode. Eres amigable, 
+profesional y cercano. Tu objetivo es ayudar a los usuarios a:
+
+1. Entender qué es DaroCode y sus características
+2. Resolver dudas sobre el uso de la plataforma
+3. Proporcionar información sobre proyectos destacados
+4. Guiar en el proceso de registro y primeros pasos
+
+CONTEXTO DE LA PLATAFORMA:
+{documentación resumida}
+
+PROYECTOS PÚBLICOS ACTUALES:
+{lista de proyectos con descripciones}
+
+REGLAS:
+- Responde siempre en {idioma del usuario}
+- Sé conciso pero completo
+- Usa emojis con moderación
+- Si no sabes algo, admítelo honestamente
+- Sugiere acciones concretas cuando sea apropiado
 ```
-
-### Caracteristicas del Carrusel
-
-- Autoplay suave con pausa al hover
-- Navegacion con flechas y drag
-- Cards con efecto glassmorphism
-- Hover effect: escala + brillo + mostrar boton "Ver proyecto"
-- Tecnologias mostradas como badges
-- Animaciones con Framer Motion
-- Responsive: 1 card en movil, 3-4 en desktop
 
 ---
 
-## Parte 3: Hook para Proyectos Publicos
+## Parte 2: Sistema de Internacionalización (i18n)
 
-### Archivo: `src/hooks/usePublicProjects.ts`
+### Arquitectura de Idiomas
 
-```typescript
-export function usePublicProjects() {
-  // Consulta proyectos donde is_public = true
-  // Retorna: { projects, loading, error }
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    LanguageContext                          │
+├─────────────────────────────────────────────────────────────┤
+│  - locale: 'es' | 'en'                                      │
+│  - setLocale: (locale) => void                              │
+│  - t: (key) => string  // función de traducción             │
+│  - detectedFromBrowser: boolean                             │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│               Archivos de Traducción                        │
+├─────────────────────────────────────────────────────────────┤
+│  src/i18n/                                                  │
+│    ├── locales/                                             │
+│    │     ├── es.json   (Español - idioma base)              │
+│    │     └── en.json   (English)                            │
+│    ├── index.ts        (configuración)                      │
+│    └── useTranslation.ts (hook)                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Detección Automática de Idioma
+
+1. **Al cargar la app**:
+   - Verificar `localStorage` para preferencia guardada
+   - Si no existe, detectar `navigator.language`
+   - Si es `en`, `en-US`, `en-GB` → Inglés
+   - Por defecto → Español
+
+2. **Selector de idioma**:
+   - Botón en Navbar (bandera + código)
+   - Dropdown con opciones: 🇪🇸 Español, 🇬🇧 English
+   - Guarda preferencia en localStorage
+
+### Componentes a Modificar para i18n
+
+| Componente | Textos a traducir |
+|------------|-------------------|
+| `Navbar.tsx` | Menú, botones CTA |
+| `Hero.tsx` | Título, subtítulo, estadísticas |
+| `Features.tsx` | Títulos y descripciones |
+| `Portfolio.tsx` | Encabezados, estados vacíos |
+| `Footer.tsx` | Enlaces, copyright |
+| `Login.tsx` | Formulario, mensajes |
+| `Register.tsx` | Formulario, mensajes |
+| Todos los `toast` | Mensajes de éxito/error |
+
+### Estructura de Traducciones
+
+```json
+// es.json (ejemplo parcial)
+{
+  "common": {
+    "login": "Iniciar sesión",
+    "register": "Empezar gratis",
+    "back": "Volver"
+  },
+  "hero": {
+    "badge": "El futuro del desarrollo full-stack",
+    "title1": "Tu ecosistema",
+    "title2": "completo de desarrollo",
+    "subtitle": "Desde la ideación hasta el despliegue..."
+  },
+  "chat": {
+    "title": "Daro Assistant",
+    "placeholder": "Escribe tu pregunta...",
+    "greeting": "¡Hola! Soy Daro, tu asistente..."
+  }
 }
 ```
 
 ---
 
-## Parte 4: Actualizar Pagina Principal
+## Orden de Implementación
 
-### Modificar: `src/pages/Index.tsx`
+### Fase 1: Sistema de Idiomas (Base)
+1. Crear contexto `LanguageContext`
+2. Crear archivos de traducción base (es.json, en.json)
+3. Crear hook `useTranslation`
+4. Agregar selector de idioma a Navbar
+5. Migrar textos de landing page
 
-```tsx
-import Portfolio from "@/components/landing/Portfolio";
+### Fase 2: Chatbot Backend
+1. Crear edge function `chat-assistant`
+2. Implementar sistema de prompts con contexto
+3. Agregar streaming de respuestas
+4. Integrar proyectos públicos como contexto
 
-const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main>
-        <Hero />
-        <Portfolio />  {/* Nueva seccion */}
-        <Features />
-        <Integrations />
-        <Workflow />
-        <CTA />
-      </main>
-      <Footer />
-    </div>
-  );
-};
-```
+### Fase 3: Chatbot Frontend
+1. Crear componentes del chat widget
+2. Implementar hook `useChatAssistant`
+3. Agregar soporte de Markdown en respuestas
+4. Chips de sugerencias contextuales
 
----
-
-## Parte 5: Agregar Toggle de Publicacion en Dashboard
-
-### Modificar: Dialogo de Edicion de Proyecto
-
-Agregare campos en `EditProjectDialog.tsx` para que los usuarios puedan:
-
-1. Marcar proyecto como publico (switch)
-2. Agregar URL de preview
-3. Subir thumbnail (imagen de captura)
-4. Seleccionar tecnologias usadas
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Editar proyecto                                      [X]   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Nombre *                                                   │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Mi Landing Page                                      │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  Descripcion                                                │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Landing page para startup de fintech               │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ─────────────── Visibilidad publica ───────────────        │
-│                                                             │
-│  Mostrar en portfolio                     [  ●──────]       │
-│                                                             │
-│  URL del sitio                                              │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ https://mi-landing.lovable.app                       │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  Captura de pantalla                                        │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  [Subir imagen]  o  [Generar automaticamente]        │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  Tecnologias                                                │
-│  [React] [Tailwind] [TypeScript] [+]                        │
-│                                                             │
-│              [Cancelar]  [Guardar cambios]                  │
-└─────────────────────────────────────────────────────────────┘
-```
+### Fase 4: Integración Final
+1. Conectar chatbot con sistema de idiomas
+2. Migrar resto de textos a i18n
+3. Pruebas de flujo completo
+4. Ajustes de UX/UI
 
 ---
 
-## Parte 6: Estado Vacio Elegante
+## Dependencias Adicionales
 
-Cuando no hay proyectos publicos, mostrar un placeholder atractivo:
+```json
+{
+  "react-markdown": "^9.0.0"  // Ya instalado como react-syntax-highlighter
+}
+```
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                           PORTFOLIO                                       │
-│                                                                          │
-│            ┌─────────────────────────────────────────┐                   │
-│            │                                         │                   │
-│            │       🚀                                │                   │
-│            │                                         │                   │
-│            │   Pronto habra proyectos increibles    │                   │
-│            │   mostrados aqui                        │                   │
-│            │                                         │                   │
-│            │   Se el primero en compartir tu trabajo │                   │
-│            │                                         │                   │
-│            │        [Empezar ahora]                  │                   │
-│            │                                         │                   │
-│            └─────────────────────────────────────────┘                   │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+No se requieren dependencias adicionales. Usaremos la implementación nativa de i18n sin librerías externas para mantener el bundle ligero.
 
 ---
 
-## Resumen de Archivos
+## Consideraciones Técnicas
 
-### Nuevos Archivos (2)
+### Chatbot
+- **Rate limiting**: El chatbot usará Lovable AI con los límites existentes
+- **Historial**: Se mantiene en memoria del componente (no persiste entre sesiones)
+- **Contexto dinámico**: Los proyectos públicos se cargan de la DB en cada conversación
 
-| Archivo | Descripcion |
-|---------|-------------|
-| `src/components/landing/Portfolio.tsx` | Carrusel interactivo de proyectos publicos |
-| `src/hooks/usePublicProjects.ts` | Hook para obtener proyectos publicos |
-
-### Archivos a Modificar (3)
-
-| Archivo | Cambios |
-|---------|---------|
-| `src/pages/Index.tsx` | Agregar componente Portfolio |
-| `src/components/dashboard/EditProjectDialog.tsx` | Campos para publicar proyecto |
-| `src/hooks/useProjects.ts` | Actualizar tipo Project e incluir nuevos campos |
-
-### Migracion SQL (1)
-
-Agregar columnas `is_public`, `preview_url`, `thumbnail_url`, `technologies` y politica RLS.
+### i18n
+- **Fallback**: Si una clave no existe en inglés, usa español
+- **Lazy loading**: Los archivos de traducción se cargan según el idioma seleccionado
+- **SEO**: Se mantiene el español como idioma principal (sin cambios en rutas)
 
 ---
 
-## Flujo de Usuario
+## Resultado Esperado
 
-```text
-Usuario en Dashboard
-        │
-        ▼
-┌───────────────────┐
-│ Editar Proyecto   │
-│                   │
-│ [x] Hacer publico │
-│ URL: https://...  │
-│ [Subir captura]   │
-└───────────────────┘
-        │
-        ▼
-Proyecto aparece en
-Landing Page Portfolio
-        │
-        ▼
-┌───────────────────┐
-│   Visitante       │
-│                   │
-│  Ve carrusel con  │
-│  proyectos de la  │
-│  comunidad        │
-└───────────────────┘
-```
-
----
-
-## Seccion Tecnica
-
-### Estructura del Carrusel
-
-El carrusel usa `embla-carousel-react` con estas configuraciones:
-
-```typescript
-const [emblaRef, emblaApi] = useEmblaCarousel({
-  loop: true,
-  align: "start",
-  slidesToScroll: 1,
-}, [Autoplay({ delay: 4000, stopOnInteraction: false })])
-```
-
-### Query de Proyectos Publicos
-
-```typescript
-const { data } = await supabase
-  .from("projects")
-  .select("id, name, description, preview_url, thumbnail_url, technologies, user_id")
-  .eq("is_public", true)
-  .order("updated_at", { ascending: false })
-  .limit(12);
-```
-
-### Politica RLS Actualizada
-
-La politica actual solo permite ver proyectos propios. Agregare una politica adicional que permita ver proyectos donde `is_public = true` sin requerir autenticacion.
+1. **Chatbot flotante** visible en todas las páginas con botón en esquina inferior derecha
+2. **Selector de idioma** en la navbar que detecta automáticamente el idioma del navegador
+3. **Experiencia fluida** donde el chatbot responde en el idioma seleccionado
+4. **Contexto inteligente** que conoce la documentación y proyectos publicados
