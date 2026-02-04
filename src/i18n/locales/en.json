@@ -1,0 +1,145 @@
+{
+  "common": {
+    "login": "Sign in",
+    "register": "Get started free",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close"
+  },
+  "nav": {
+    "product": "Product",
+    "features": "Features",
+    "integrations": "Integrations",
+    "docs": "Docs"
+  },
+  "hero": {
+    "badge": "The future of full-stack development",
+    "title1": "Your complete",
+    "title2": "development ecosystem",
+    "subtitle": "From ideation to deployment. Design, code, backend, databases, and DevOps—all connected in one platform.",
+    "cta": "Get started free",
+    "demo": "View demo",
+    "stats": {
+      "integrations": "Integrations",
+      "developers": "Developers",
+      "uptime": "Uptime",
+      "support": "Support"
+    }
+  },
+  "features": {
+    "label": "Features",
+    "title": "Everything you need,",
+    "titleHighlight": "in one place",
+    "subtitle": "A complete ecosystem that integrates all stages of software development.",
+    "items": {
+      "dashboard": {
+        "title": "Unified Control Panel",
+        "description": "Centralized dashboard that connects all your development tools with real-time synchronization."
+      },
+      "frontend": {
+        "title": "Enhanced Frontend",
+        "description": "Native connection with Figma, React, Vue, Angular. Automatic import of components to code."
+      },
+      "backend": {
+        "title": "Backend Ecosystem",
+        "description": "PostgreSQL, MongoDB, Redis integrated. Schema migration and visual management tools."
+      },
+      "cloud": {
+        "title": "Multi-Cloud Native",
+        "description": "AWS, Google Cloud, Azure, DigitalOcean. Visual service configuration and automatic deployment."
+      },
+      "devops": {
+        "title": "Integrated DevOps",
+        "description": "GitHub, GitLab, visual CI/CD. Configurable pipelines and one-click rollback."
+      },
+      "security": {
+        "title": "Advanced Security",
+        "description": "Auth0, Firebase Auth, OAuth, JWT. Centralized user and permission management panel."
+      },
+      "team": {
+        "title": "Team Collaboration",
+        "description": "Shared spaces, remote pair programming, integration with Jira, Trello, and Asana."
+      },
+      "ai": {
+        "title": "Integrated AI",
+        "description": "AI code generation, optimization suggestions, and pattern detection."
+      }
+    }
+  },
+  "portfolio": {
+    "label": "Portfolio",
+    "title": "Featured Projects",
+    "subtitle": "Discover what you can build with DaroCode",
+    "empty": "No public projects available",
+    "viewProject": "View project",
+    "technologies": "Technologies"
+  },
+  "footer": {
+    "description": "The complete ecosystem for full-stack development. From ideation to deployment.",
+    "product": "Product",
+    "resources": "Resources",
+    "company": "Company",
+    "legal": "Legal",
+    "copyright": "© 2024 DaroCode. All rights reserved.",
+    "systemStatus": "System status",
+    "allSystems": "All systems operational",
+    "links": {
+      "features": "Features",
+      "integrations": "Integrations",
+      "pricing": "Pricing",
+      "changelog": "Changelog",
+      "roadmap": "Roadmap",
+      "documentation": "Documentation",
+      "apiReference": "API Reference",
+      "guides": "Guides",
+      "blog": "Blog",
+      "community": "Community",
+      "about": "About us",
+      "careers": "Careers",
+      "press": "Press",
+      "partners": "Partners",
+      "contact": "Contact",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cookies": "Cookies",
+      "licenses": "Licenses"
+    }
+  },
+  "chat": {
+    "title": "Daro Assistant",
+    "placeholder": "Type your question...",
+    "greeting": "Hello! 👋 I'm Daro, your virtual assistant. How can I help you today?",
+    "thinking": "Thinking...",
+    "error": "Sorry, there was an error. Please try again.",
+    "suggestions": {
+      "whatIs": "What is DaroCode?",
+      "features": "What features does it have?",
+      "projects": "View featured projects",
+      "howToStart": "How do I get started?",
+      "pricing": "How much does it cost?",
+      "help": "I need help"
+    }
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to continue",
+    "registerTitle": "Create account",
+    "registerSubtitle": "Join thousands of developers",
+    "email": "Email address",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "fullName": "Full name",
+    "forgotPassword": "Forgot your password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUp": "Sign up",
+    "signIn": "Sign in",
+    "orContinueWith": "Or continue with"
+  }
+}
