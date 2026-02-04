@@ -3,19 +3,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const navItems = [
-  { label: "Producto", href: "#" },
-  { label: "Características", href: "#features" },
-  { label: "Integraciones", href: "#integrations" },
-  { label: "Docs", href: "/docs", isRoute: true },
-];
+import { useLanguage } from "@/i18n/LanguageContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuth();
+  const { t } = useLanguage();
+
+  const navItems = [
+    { label: t("nav.product"), href: "#" },
+    { label: t("nav.features"), href: "#features" },
+    { label: t("nav.integrations"), href: "#integrations" },
+    { label: t("nav.docs"), href: "/docs", isRoute: true },
+  ];
 
   return (
     <motion.header
@@ -40,33 +40,47 @@ const Navbar = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
               {navItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {item.label}
-                </a>
+                item.isRoute ? (
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                )
               ))}
             </div>
 
             {/* Desktop CTA */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2">
+              <LanguageSelector />
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
-                <Link to="/login">Iniciar sesión</Link>
+                <Link to="/login">{t("common.login")}</Link>
               </Button>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(175_80%_50%_/_0.2)]" asChild>
-                <Link to="/register">Empezar gratis</Link>
+                <Link to="/register">{t("common.register")}</Link>
               </Button>
             </div>
 
             {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 text-foreground"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            <div className="flex items-center gap-2 md:hidden">
+              <LanguageSelector />
+              <button
+                className="p-2 text-foreground"
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </nav>
       </div>
@@ -84,21 +98,32 @@ const Navbar = () => {
             <div className="glass-card rounded-2xl border-border/30 p-6">
               <div className="flex flex-col gap-4">
                 {navItems.map((item) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    className="text-foreground py-2 border-b border-border/30 last:border-0"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    {item.label}
-                  </a>
+                  item.isRoute ? (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className="text-foreground py-2 border-b border-border/30 last:border-0"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      className="text-foreground py-2 border-b border-border/30 last:border-0"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      {item.label}
+                    </a>
+                  )
                 ))}
                 <div className="flex flex-col gap-2 pt-4">
                   <Button variant="outline" className="w-full" asChild>
-                    <Link to="/login">Iniciar sesión</Link>
+                    <Link to="/login">{t("common.login")}</Link>
                   </Button>
                   <Button className="w-full bg-primary text-primary-foreground" asChild>
-                    <Link to="/register">Empezar gratis</Link>
+                    <Link to="/register">{t("common.register")}</Link>
                   </Button>
                 </div>
               </div>

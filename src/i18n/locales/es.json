@@ -1,0 +1,145 @@
+{
+  "common": {
+    "login": "Iniciar sesión",
+    "register": "Empezar gratis",
+    "back": "Volver",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar"
+  },
+  "nav": {
+    "product": "Producto",
+    "features": "Características",
+    "integrations": "Integraciones",
+    "docs": "Docs"
+  },
+  "hero": {
+    "badge": "El futuro del desarrollo full-stack",
+    "title1": "Tu ecosistema",
+    "title2": "completo de desarrollo",
+    "subtitle": "Desde la ideación hasta el despliegue. Diseño, código, backend, bases de datos y DevOps—todo conectado en una sola plataforma.",
+    "cta": "Empezar gratis",
+    "demo": "Ver demo",
+    "stats": {
+      "integrations": "Integraciones",
+      "developers": "Desarrolladores",
+      "uptime": "Uptime",
+      "support": "Soporte"
+    }
+  },
+  "features": {
+    "label": "Características",
+    "title": "Todo lo que necesitas,",
+    "titleHighlight": "en un solo lugar",
+    "subtitle": "Un ecosistema completo que integra todas las etapas del desarrollo de software.",
+    "items": {
+      "dashboard": {
+        "title": "Panel de Control Unificado",
+        "description": "Dashboard centralizado que conecta todas tus herramientas de desarrollo con sincronización en tiempo real."
+      },
+      "frontend": {
+        "title": "Frontend Ampliado",
+        "description": "Conexión nativa con Figma, React, Vue, Angular. Importación automática de componentes a código."
+      },
+      "backend": {
+        "title": "Ecosistema Backend",
+        "description": "PostgreSQL, MongoDB, Redis integrados. Migración de esquemas y herramientas visuales de gestión."
+      },
+      "cloud": {
+        "title": "Multi-Cloud Nativo",
+        "description": "AWS, Google Cloud, Azure, DigitalOcean. Configuración visual de servicios y despliegue automático."
+      },
+      "devops": {
+        "title": "DevOps Integrado",
+        "description": "GitHub, GitLab, CI/CD visual. Pipelines configurables y rollback con un solo clic."
+      },
+      "security": {
+        "title": "Seguridad Avanzada",
+        "description": "Auth0, Firebase Auth, OAuth, JWT. Panel de gestión de usuarios y permisos centralizado."
+      },
+      "team": {
+        "title": "Colaboración en Equipo",
+        "description": "Espacios compartidos, pair programming remoto, integración con Jira, Trello y Asana."
+      },
+      "ai": {
+        "title": "IA Integrada",
+        "description": "Generación de código con IA, sugerencias de optimización y detección de patrones."
+      }
+    }
+  },
+  "portfolio": {
+    "label": "Portfolio",
+    "title": "Proyectos Destacados",
+    "subtitle": "Descubre lo que puedes construir con DaroCode",
+    "empty": "No hay proyectos públicos disponibles",
+    "viewProject": "Ver proyecto",
+    "technologies": "Tecnologías"
+  },
+  "footer": {
+    "description": "El ecosistema completo para desarrollo full-stack. Desde la ideación hasta el despliegue.",
+    "product": "Producto",
+    "resources": "Recursos",
+    "company": "Empresa",
+    "legal": "Legal",
+    "copyright": "© 2024 DaroCode. Todos los derechos reservados.",
+    "systemStatus": "Estado del sistema",
+    "allSystems": "Todos los sistemas operativos",
+    "links": {
+      "features": "Características",
+      "integrations": "Integraciones",
+      "pricing": "Precios",
+      "changelog": "Changelog",
+      "roadmap": "Roadmap",
+      "documentation": "Documentación",
+      "apiReference": "API Reference",
+      "guides": "Guías",
+      "blog": "Blog",
+      "community": "Comunidad",
+      "about": "Sobre nosotros",
+      "careers": "Carreras",
+      "press": "Prensa",
+      "partners": "Partners",
+      "contact": "Contacto",
+      "privacy": "Privacidad",
+      "terms": "Términos",
+      "cookies": "Cookies",
+      "licenses": "Licencias"
+    }
+  },
+  "chat": {
+    "title": "Daro Assistant",
+    "placeholder": "Escribe tu pregunta...",
+    "greeting": "¡Hola! 👋 Soy Daro, tu asistente virtual. ¿En qué puedo ayudarte hoy?",
+    "thinking": "Pensando...",
+    "error": "Lo siento, hubo un error. Por favor, inténtalo de nuevo.",
+    "suggestions": {
+      "whatIs": "¿Qué es DaroCode?",
+      "features": "¿Qué características tiene?",
+      "projects": "Ver proyectos destacados",
+      "howToStart": "¿Cómo empezar?",
+      "pricing": "¿Cuánto cuesta?",
+      "help": "Necesito ayuda"
+    }
+  },
+  "auth": {
+    "loginTitle": "Bienvenido de vuelta",
+    "loginSubtitle": "Inicia sesión para continuar",
+    "registerTitle": "Crear cuenta",
+    "registerSubtitle": "Únete a miles de desarrolladores",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "fullName": "Nombre completo",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "noAccount": "¿No tienes cuenta?",
+    "hasAccount": "¿Ya tienes cuenta?",
+    "signUp": "Registrarse",
+    "signIn": "Iniciar sesión",
+    "orContinueWith": "O continúa con"
+  }
+}
