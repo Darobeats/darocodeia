@@ -52,7 +52,7 @@ const DocsContent = ({ item }: DocsContentProps) => {
       // Links
       text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>');
 
-      return <span dangerouslySetInnerHTML={{ __html: text }} />;
+      return <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(text, { ALLOWED_URI_REGEXP: /^https?:\/\//i }) }} />;
     };
 
     lines.forEach((line, index) => {
