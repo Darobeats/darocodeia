@@ -21,7 +21,44 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // --- Ownership verification ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the caller owns the project
+    const { data: proj } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!proj) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // --- End ownership verification ---
 
     // Fetch project context (memory)
     const { data: projectContext } = await supabase
@@ -33,36 +70,36 @@ serve(async (req) => {
     let projectMemoryPrompt = "";
     if (projectContext && projectContext.length > 0) {
       const sections: string[] = [];
-      
+
       const techStack = projectContext.filter((c: { context_type: string }) => c.context_type === "tech_stack");
       const styleGuide = projectContext.filter((c: { context_type: string }) => c.context_type === "style_guide");
       const preferences = projectContext.filter((c: { context_type: string }) => c.context_type === "learned_preference");
       const businessRules = projectContext.filter((c: { context_type: string }) => c.context_type === "business_rules");
-      
+
       if (techStack.length > 0) {
-        sections.push(`TECH STACK:\n${techStack.map((t: { key: string; value: unknown }) => 
+        sections.push(`TECH STACK:\n${techStack.map((t: { key: string; value: unknown }) =>
           `- ${t.key}: ${JSON.stringify(t.value)}`
         ).join("\n")}`);
       }
-      
+
       if (styleGuide.length > 0) {
-        sections.push(`STYLE GUIDE:\n${styleGuide.map((s: { key: string; value: unknown }) => 
+        sections.push(`STYLE GUIDE:\n${styleGuide.map((s: { key: string; value: unknown }) =>
           `- ${s.key}: ${JSON.stringify(s.value)}`
         ).join("\n")}`);
       }
-      
+
       if (preferences.length > 0) {
-        sections.push(`USER PREFERENCES:\n${preferences.map((p: { key: string; value: unknown }) => 
+        sections.push(`USER PREFERENCES:\n${preferences.map((p: { key: string; value: unknown }) =>
           `- ${p.key}: ${JSON.stringify(p.value)}`
         ).join("\n")}`);
       }
 
       if (businessRules.length > 0) {
-        sections.push(`BUSINESS RULES:\n${businessRules.map((b: { key: string; value: unknown }) => 
+        sections.push(`BUSINESS RULES:\n${businessRules.map((b: { key: string; value: unknown }) =>
           `- ${b.key}: ${JSON.stringify(b.value)}`
         ).join("\n")}`);
       }
-      
+
       if (sections.length > 0) {
         projectMemoryPrompt = `
 
@@ -78,7 +115,7 @@ Use these project-specific settings when generating code.
 
     // Build context from existing files
     const existingFilesContext = existingFiles?.length > 0
-      ? `\n\nExisting files in the project:\n${existingFiles.map((f: { path: string; content: string }) => 
+      ? `\n\nExisting files in the project:\n${existingFiles.map((f: { path: string; content: string }) =>
           `--- ${f.path} ---\n${f.content || "(empty)"}`
         ).join("\n\n")}`
       : "";
@@ -159,16 +196,16 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
 
     // Build user message - multimodal if images are provided
     type MessageContent = string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
-    
+
     let userMessageContent: MessageContent = prompt;
-    
+
     if (referenceImages?.length > 0) {
       userMessageContent = [
         { type: "text", text: prompt },
         ...referenceImages.map((img: { url: string; name: string }) => ({
           type: "image_url",
-          image_url: { url: img.url }
-        }))
+          image_url: { url: img.url },
+        })),
       ];
     }
 
@@ -190,7 +227,7 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      
+
       if (response.status === 429) {
         await supabase
           .from("project_prompts")
@@ -201,7 +238,7 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
+
       if (response.status === 402) {
         await supabase
           .from("project_prompts")
@@ -212,7 +249,7 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
+
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
@@ -226,7 +263,6 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
     // Parse the AI response
     let parsedResponse: { response: string; files: Array<{ path: string; content: string }> };
     try {
-      // Clean the response - remove markdown code blocks if present
       let cleanContent = content.trim();
       if (cleanContent.startsWith("```json")) {
         cleanContent = cleanContent.slice(7);
@@ -239,7 +275,6 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
       parsedResponse = JSON.parse(cleanContent.trim());
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Fallback: treat as plain text response
       parsedResponse = {
         response: content,
         files: [],
@@ -291,7 +326,7 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
   } catch (error) {
     console.error("generate-code error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
