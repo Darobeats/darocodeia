@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import DOMPurify from "dompurify";
 import CodeBlock from "./CodeBlock";
 import { DocItem } from "@/data/documentation";
 
