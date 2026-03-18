@@ -18,6 +18,7 @@ import Team from "./pages/Team";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import ProjectEditor from "./pages/ProjectEditor";
+import EmbedViewer from "./pages/EmbedViewer";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/dashboard/team" element={<AuthGuard><Team /></AuthGuard>} />
               <Route path="/dashboard/analytics" element={<AuthGuard><Analytics /></AuthGuard>} />
               <Route path="/dashboard/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+              <Route path="/view/*" element={<EmbedViewer />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <ChatWidget />
