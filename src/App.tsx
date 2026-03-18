@@ -18,6 +18,7 @@ import Team from "./pages/Team";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import ProjectEditor from "./pages/ProjectEditor";
+import EmbedViewer from "./pages/EmbedViewer";
 
 const queryClient = new QueryClient();
 
