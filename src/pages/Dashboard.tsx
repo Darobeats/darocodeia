@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects } from "@/hooks/useProjects";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { CreateProjectDialog } from "@/components/dashboard/CreateProjectDialog";
 import { EditProjectDialog } from "@/components/dashboard/EditProjectDialog";
 import { DeleteProjectDialog } from "@/components/dashboard/DeleteProjectDialog";
@@ -10,7 +11,7 @@ import { Project } from "@/hooks/useProjects";
 import { 
   LayoutDashboard, FolderKanban, Users, BarChart3, Settings, Bell, 
   Search, LogOut, Plus, TrendingUp, GitCommit, Rocket, AlertCircle,
-  Activity, Clock, CheckCircle2, MoreVertical, Pencil, Trash2
+  Activity, Clock, CheckCircle2, MoreVertical, Pencil, Trash2, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,11 +86,14 @@ const Dashboard = () => {
     { label: "Uptime", value: `${(projects.reduce((a, p) => a + (p.uptime_percentage || 100), 0) / (projects.length || 1)).toFixed(1)}%`, icon: TrendingUp, color: "text-accent" },
   ];
 
+  const { isAdmin } = useIsAdmin();
+
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Overview", active: true, path: "/dashboard" },
     { icon: FolderKanban, label: "Proyectos", path: "/dashboard/projects" },
     { icon: Users, label: "Equipo", path: "/dashboard/team" },
     { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
+    ...(isAdmin ? [{ icon: Star, label: "Destacados", path: "/dashboard/featured" }] : []),
     { icon: Settings, label: "Configuración", path: "/dashboard/settings" },
   ];
 
