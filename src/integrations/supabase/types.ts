@@ -365,6 +365,7 @@ export type Database = {
           deploys_count: number | null
           description: string | null
           errors_count: number | null
+          featured_order: number | null
           id: string
           is_public: boolean | null
           last_deploy_at: string | null
@@ -383,6 +384,7 @@ export type Database = {
           deploys_count?: number | null
           description?: string | null
           errors_count?: number | null
+          featured_order?: number | null
           id?: string
           is_public?: boolean | null
           last_deploy_at?: string | null
@@ -401,6 +403,7 @@ export type Database = {
           deploys_count?: number | null
           description?: string | null
           errors_count?: number | null
+          featured_order?: number | null
           id?: string
           is_public?: boolean | null
           last_deploy_at?: string | null

@@ -1,245 +1,64 @@
+## Issues found
 
-# Plan de Implementación: Chatbot Inteligente + Sistema de Internacionalización
+**1. Featured project thumbnails are broken**
 
-## Resumen Ejecutivo
-
-Este plan implementa dos funcionalidades clave:
-1. **Chatbot Inteligente "Daro Assistant"**: Un asistente conversacional que entiende el contexto de la aplicación y los proyectos públicos
-2. **Sistema de Idiomas (i18n)**: Soporte multilingüe con detección automática y cambio manual entre Español e Inglés
-
----
-
-## Parte 1: Chatbot Inteligente "Daro Assistant"
-
-### Visión del Producto
-Un chatbot flotante disponible en toda la aplicación que:
-- Responde dudas sobre la plataforma DaroCode
-- Explica características y flujos de trabajo
-- Proporciona información sobre proyectos públicos del portfolio
-- Guía a usuarios nuevos en el onboarding
-- Tiene personalidad cercana y profesional
-
-### Arquitectura del Chatbot
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                     FRONTEND (React)                        │
-├─────────────────────────────────────────────────────────────┤
-│  ChatWidget (Floating)                                      │
-│    ├── ChatButton (trigger)                                 │
-│    ├── ChatWindow                                           │
-│    │     ├── ChatHeader                                     │
-│    │     ├── MessageList                                    │
-│    │     │     ├── UserMessage                              │
-│    │     │     └── AssistantMessage (con Markdown)          │
-│    │     ├── SuggestionChips                                │
-│    │     └── ChatInput                                      │
-│    └── Context Provider (idioma, proyectos, docs)           │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   EDGE FUNCTION: chat-assistant             │
-├─────────────────────────────────────────────────────────────┤
-│  1. Recibe mensaje + contexto (idioma, página actual)       │
-│  2. Construye system prompt con:                            │
-│     ├── Documentación de DaroCode                           │
-│     ├── Proyectos públicos actuales (de DB)                 │
-│     ├── Contexto de navegación                              │
-│     └── Idioma del usuario                                  │
-│  3. Llama a Lovable AI (streaming)                          │
-│  4. Retorna respuesta en tiempo real                        │
-└─────────────────────────────────────────────────────────────┘
+The thumbnails (`Chequi`, `TrueFlow`, `Carniceros`) point at:
 ```
-
-### Componentes a Crear
-
-| Archivo | Descripción |
-|---------|-------------|
-| `src/components/chat/ChatWidget.tsx` | Widget flotante principal |
-| `src/components/chat/ChatWindow.tsx` | Ventana de conversación |
-| `src/components/chat/ChatMessage.tsx` | Renderizado de mensajes con Markdown |
-| `src/components/chat/ChatInput.tsx` | Input con sugerencias rápidas |
-| `src/components/chat/SuggestionChips.tsx` | Chips de preguntas frecuentes |
-| `src/hooks/useChatAssistant.ts` | Hook para lógica del chat + streaming |
-| `supabase/functions/chat-assistant/index.ts` | Edge function con contexto |
-
-### Flujo de Conversación
-
-1. **Usuario abre el chat** → Saludo personalizado según contexto
-2. **Sugerencias iniciales** basadas en la página actual:
-   - Landing: "¿Qué es DaroCode?", "Ver proyectos destacados"
-   - Docs: "Buscar en documentación", "¿Cómo empezar?"
-   - Dashboard: "¿Cómo crear un proyecto?", "Ayuda con GitHub"
-3. **Respuestas contextuales** que conocen:
-   - Toda la documentación
-   - Proyectos públicos con sus tecnologías
-   - Flujos de la aplicación
-
-### System Prompt del Chatbot
-
-```text
-Eres "Daro", el asistente virtual de DaroCode. Eres amigable, 
-profesional y cercano. Tu objetivo es ayudar a los usuarios a:
-
-1. Entender qué es DaroCode y sus características
-2. Resolver dudas sobre el uso de la plataforma
-3. Proporcionar información sobre proyectos destacados
-4. Guiar en el proceso de registro y primeros pasos
-
-CONTEXTO DE LA PLATAFORMA:
-{documentación resumida}
-
-PROYECTOS PÚBLICOS ACTUALES:
-{lista de proyectos con descripciones}
-
-REGLAS:
-- Responde siempre en {idioma del usuario}
-- Sé conciso pero completo
-- Usa emojis con moderación
-- Si no sabes algo, admítelo honestamente
-- Sugiere acciones concretas cuando sea apropiado
+https://uzzhucojelyovsowyavf.supabase.co/storage/v1/object/public/project-assets/thumbnails/...
 ```
+A previous security fix (warn-level) flipped the `project-assets` bucket to **private**, so those `/object/public/...` URLs now return errors and the images don't render on the landing page.
+
+**2. `iacristiandigital@gmail.com` cannot manage Featured Projects**
+
+The user exists (`id = 68ca5575-3a7c-4363-8c67-ce902698196e`) but has no admin role, and the projects listed as featured belong to other users — so RLS blocks updates/deletes from this account. There is also no UI today to add/remove/reorder featured items.
 
 ---
 
-## Parte 2: Sistema de Internacionalización (i18n)
+## Plan
 
-### Arquitectura de Idiomas
+### A. Fix portfolio thumbnails (keep security intact)
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    LanguageContext                          │
-├─────────────────────────────────────────────────────────────┤
-│  - locale: 'es' | 'en'                                      │
-│  - setLocale: (locale) => void                              │
-│  - t: (key) => string  // función de traducción             │
-│  - detectedFromBrowser: boolean                             │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│               Archivos de Traducción                        │
-├─────────────────────────────────────────────────────────────┤
-│  src/i18n/                                                  │
-│    ├── locales/                                             │
-│    │     ├── es.json   (Español - idioma base)              │
-│    │     └── en.json   (English)                            │
-│    ├── index.ts        (configuración)                      │
-│    └── useTranslation.ts (hook)                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Create a second, **public, read-only** bucket dedicated to public assets, and migrate the 3 thumbnail files there. The original `project-assets` bucket stays private for user uploads.
 
-### Detección Automática de Idioma
+1. Migration:
+   - Create bucket `public-assets` with `public = true`.
+   - RLS on `storage.objects` for `public-assets`:
+     - SELECT: anyone (`true`)
+     - INSERT/UPDATE/DELETE: only users with role `admin`
+2. Copy the 3 existing thumbnails (`chequi.png`, `trueflow.png`, `carniceros.png`) from `project-assets/thumbnails/` into `public-assets/thumbnails/` (one-off script using the service role key in an edge function or a quick admin upload — handled at implementation time).
+3. UPDATE the 3 `projects.thumbnail_url` rows to point at `…/object/public/public-assets/thumbnails/<file>.png`.
 
-1. **Al cargar la app**:
-   - Verificar `localStorage` para preferencia guardada
-   - Si no existe, detectar `navigator.language`
-   - Si es `en`, `en-US`, `en-GB` → Inglés
-   - Por defecto → Español
+Result: thumbnails render publicly again, and user-uploaded private content stays private.
 
-2. **Selector de idioma**:
-   - Botón en Navbar (bandera + código)
-   - Dropdown con opciones: 🇪🇸 Español, 🇬🇧 English
-   - Guarda preferencia en localStorage
+### B. Admin role for `iacristiandigital@gmail.com`
 
-### Componentes a Modificar para i18n
+1. Insert a row into `user_roles`: `(user_id = 68ca5575-3a7c-4363-8c67-ce902698196e, role = 'admin')`.
+2. Add an RLS policy on `projects` so admins can `SELECT / UPDATE / DELETE / INSERT` any row using `public.has_role(auth.uid(), 'admin')`.
 
-| Componente | Textos a traducir |
-|------------|-------------------|
-| `Navbar.tsx` | Menú, botones CTA |
-| `Hero.tsx` | Título, subtítulo, estadísticas |
-| `Features.tsx` | Títulos y descripciones |
-| `Portfolio.tsx` | Encabezados, estados vacíos |
-| `Footer.tsx` | Enlaces, copyright |
-| `Login.tsx` | Formulario, mensajes |
-| `Register.tsx` | Formulario, mensajes |
-| Todos los `toast` | Mensajes de éxito/error |
+### C. Featured Projects admin UI
 
-### Estructura de Traducciones
+Add a new admin-only page **`/dashboard/featured`** (guarded by `has_role('admin')` checked client-side via a new `useIsAdmin` hook + redirect, with RLS as the real enforcement).
 
-```json
-// es.json (ejemplo parcial)
-{
-  "common": {
-    "login": "Iniciar sesión",
-    "register": "Empezar gratis",
-    "back": "Volver"
-  },
-  "hero": {
-    "badge": "El futuro del desarrollo full-stack",
-    "title1": "Tu ecosistema",
-    "title2": "completo de desarrollo",
-    "subtitle": "Desde la ideación hasta el despliegue..."
-  },
-  "chat": {
-    "title": "Daro Assistant",
-    "placeholder": "Escribe tu pregunta...",
-    "greeting": "¡Hola! Soy Daro, tu asistente..."
-  }
-}
-```
+Page features:
+- List all `projects` where `is_public = true`, ordered by a new `featured_order` column (see D).
+- For each row: edit name / description / preview_url / thumbnail_url / technologies, plus toggle `is_public`, plus delete.
+- "Add featured project" dialog: pick an existing public project OR create a new public-only entry (name, description, preview_url, thumbnail upload to `public-assets/thumbnails/`, technologies).
+- Reorder via up/down buttons (mobile-friendly) writing to `featured_order`.
+
+Entry point: a new "Proyectos Destacados" link in the dashboard sidebar, only rendered when `useIsAdmin()` is true.
+
+### D. Ordering support
+
+1. Migration: add `featured_order integer` to `projects` (nullable, default `null`). Backfill the 3 current featured rows with `1, 2, 3`.
+2. Update `usePublicProjects` to `order('featured_order', { ascending: true, nullsFirst: false })` then by `updated_at` desc as a tiebreaker.
 
 ---
 
-## Orden de Implementación
+## Technical details
 
-### Fase 1: Sistema de Idiomas (Base)
-1. Crear contexto `LanguageContext`
-2. Crear archivos de traducción base (es.json, en.json)
-3. Crear hook `useTranslation`
-4. Agregar selector de idioma a Navbar
-5. Migrar textos de landing page
-
-### Fase 2: Chatbot Backend
-1. Crear edge function `chat-assistant`
-2. Implementar sistema de prompts con contexto
-3. Agregar streaming de respuestas
-4. Integrar proyectos públicos como contexto
-
-### Fase 3: Chatbot Frontend
-1. Crear componentes del chat widget
-2. Implementar hook `useChatAssistant`
-3. Agregar soporte de Markdown en respuestas
-4. Chips de sugerencias contextuales
-
-### Fase 4: Integración Final
-1. Conectar chatbot con sistema de idiomas
-2. Migrar resto de textos a i18n
-3. Pruebas de flujo completo
-4. Ajustes de UX/UI
-
----
-
-## Dependencias Adicionales
-
-```json
-{
-  "react-markdown": "^9.0.0"  // Ya instalado como react-syntax-highlighter
-}
-```
-
-No se requieren dependencias adicionales. Usaremos la implementación nativa de i18n sin librerías externas para mantener el bundle ligero.
-
----
-
-## Consideraciones Técnicas
-
-### Chatbot
-- **Rate limiting**: El chatbot usará Lovable AI con los límites existentes
-- **Historial**: Se mantiene en memoria del componente (no persiste entre sesiones)
-- **Contexto dinámico**: Los proyectos públicos se cargan de la DB en cada conversación
-
-### i18n
-- **Fallback**: Si una clave no existe en inglés, usa español
-- **Lazy loading**: Los archivos de traducción se cargan según el idioma seleccionado
-- **SEO**: Se mantiene el español como idioma principal (sin cambios en rutas)
-
----
-
-## Resultado Esperado
-
-1. **Chatbot flotante** visible en todas las páginas con botón en esquina inferior derecha
-2. **Selector de idioma** en la navbar que detecta automáticamente el idioma del navegador
-3. **Experiencia fluida** donde el chatbot responde en el idioma seleccionado
-4. **Contexto inteligente** que conoce la documentación y proyectos publicados
+- New bucket policies use `public.has_role(auth.uid(), 'admin')` (already exists, `SECURITY DEFINER`) — no recursion risk.
+- No changes to the existing private `project-assets` bucket or its policies.
+- `useIsAdmin` hook: simple `select` on `user_roles` filtered by `auth.uid()` and `role = 'admin'`.
+- Files to add: `src/hooks/useIsAdmin.ts`, `src/pages/FeaturedProjectsAdmin.tsx`, route in `src/App.tsx`, sidebar link update.
+- Files to edit: `src/hooks/usePublicProjects.ts` (ordering), dashboard sidebar component.
+- Migrations: one schema migration (bucket + policies + `featured_order` column + projects admin RLS), one data update (role insert + thumbnail URL rewrite + order backfill) via the insert tool.
