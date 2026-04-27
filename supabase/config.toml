@@ -2,3 +2,6 @@ project_id = "uzzhucojelyovsowyavf"
 
 [functions.chat-assistant]
 verify_jwt = false
+
+[functions.migrate-thumbnails]
+verify_jwt = false
