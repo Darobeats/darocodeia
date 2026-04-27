@@ -24,8 +24,9 @@ export function usePublicProjects() {
 
         const { data, error: fetchError } = await supabase
           .from("projects")
-          .select("id, name, description, preview_url, thumbnail_url, technologies, updated_at")
+          .select("id, name, description, preview_url, thumbnail_url, technologies, updated_at, featured_order")
           .eq("is_public", true)
+          .order("featured_order", { ascending: true, nullsFirst: false })
           .order("updated_at", { ascending: false })
           .limit(12);
 
