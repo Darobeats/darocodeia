@@ -465,7 +465,7 @@ export default function FeaturedProjectsAdmin() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </Dialog>
+      </AlertDialog>
     </div>
   );
 }
