@@ -71,7 +71,17 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, locale, currentPage }: RequestBody = await req.json();
+    const body: RequestBody = await req.json();
+    const rawMessages = Array.isArray(body.messages) ? body.messages.slice(-20) : [];
+    const messages = rawMessages
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    const locale: "es" | "en" = body.locale === "en" ? "en" : "es";
+    const safeCurrentPage = (typeof body.currentPage === "string" ? body.currentPage : "")
+      .replace(/[\r\n]+/g, " ")
+      .replace(/[^\w\s\-/.:]/g, "")
+      .slice(0, 100);
+    const currentPage = safeCurrentPage || (locale === "es" ? "Página principal" : "Main page");
 
     // Validate authentication
     const authHeader = req.headers.get("Authorization");
@@ -220,11 +230,8 @@ RULES:
   } catch (error) {
     console.error("Chat assistant error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: "An unexpected error occurred. Please try again." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
