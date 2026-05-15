@@ -167,7 +167,8 @@ serve(async (req) => {
       .single();
 
     if (projectError || !project) {
-      return new Response(JSON.stringify({ error: projectError?.message || "Failed to create project" }), {
+      console.error("github-import project create error:", projectError);
+      return new Response(JSON.stringify({ error: "Failed to create project" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -248,10 +249,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("GitHub import error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "An unexpected error occurred. Please try again." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
