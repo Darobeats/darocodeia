@@ -256,6 +256,7 @@ export default function Projects() {
         onOpenChange={setCreateOpen}
         onSubmit={createProject}
       />
+      <ImportFromGitHubDialog open={importOpen} onOpenChange={setImportOpen} />
       <EditProjectDialog
         open={!!editProject}
         onOpenChange={(open) => !open && setEditProject(null)}
