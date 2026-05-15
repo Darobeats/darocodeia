@@ -242,10 +242,12 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
       console.error("AI gateway error:", response.status, errorText);
 
       if (response.status === 429) {
-        await supabase
-          .from("project_prompts")
-          .update({ status: "error", response: "Rate limit exceeded. Please try again later." })
-          .eq("id", promptId);
+        if (safePromptId) {
+          await supabase
+            .from("project_prompts")
+            .update({ status: "error", response: "Rate limit exceeded. Please try again later." })
+            .eq("id", safePromptId);
+        }
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -253,10 +255,12 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
       }
 
       if (response.status === 402) {
-        await supabase
-          .from("project_prompts")
-          .update({ status: "error", response: "Payment required. Please add credits." })
-          .eq("id", promptId);
+        if (safePromptId) {
+          await supabase
+            .from("project_prompts")
+            .update({ status: "error", response: "Payment required. Please add credits." })
+            .eq("id", safePromptId);
+        }
         return new Response(
           JSON.stringify({ error: "Payment required" }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -295,14 +299,16 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
     }
 
     // Update prompt with response
-    await supabase
-      .from("project_prompts")
-      .update({
-        response: parsedResponse.response,
-        status: "completed",
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", promptId);
+    if (safePromptId) {
+      await supabase
+        .from("project_prompts")
+        .update({
+          response: parsedResponse.response,
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", safePromptId);
+    }
 
     // Create or update files
     if (parsedResponse.files && parsedResponse.files.length > 0) {
