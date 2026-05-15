@@ -1,64 +1,89 @@
-## Issues found
+# Conectar GitHub para analizar y mejorar código con IA
 
-**1. Featured project thumbnails are broken**
+## Estado actual
 
-The thumbnails (`Chequi`, `TrueFlow`, `Carniceros`) point at:
+El proyecto **ya tiene** una integración con GitHub vía OAuth (`github_connections`, edge functions `github-auth` y `github-push`). Hoy solo se usa en una dirección: **exportar** un proyecto de DaroCode hacia un repo nuevo. No hay forma de **traer** un repo existente para analizarlo.
+
+Lo que falta es: importar el contenido de un repo, mostrarlo en el editor, y permitir que la IA lo analice/modifique con la misma UX que ya existe en `ProjectEditor`.
+
+## Qué se construirá
+
+### 1. Importar repositorios desde GitHub
+- Nuevo botón **"Importar desde GitHub"** en `Dashboard` / `Projects` (junto a "Crear proyecto").
+- Diálogo `ImportFromGitHubDialog` que:
+  - Si el usuario no tiene conexión GitHub → dispara el flujo OAuth ya existente (`useGitHub.initiateOAuth`).
+  - Si está conectado → lista sus repos (públicos y privados a los que tenga acceso) con buscador.
+  - Permite elegir branch (default branch por defecto).
+  - Botón "Importar" lanza una nueva edge function `github-import`.
+
+### 2. Edge function `github-import` (segura)
+- Verifica JWT del usuario y que `github_connections.user_id = auth.uid()`.
+- Lee el `access_token` solo en el servidor (ya está revocado del cliente por la migración de seguridad previa).
+- Usa GitHub API: `GET /repos/{owner}/{repo}/git/trees/{branch}?recursive=1` para obtener todos los paths.
+- Descarga el contenido de cada archivo (`GET /repos/.../contents/{path}` o blobs API), filtrando binarios y archivos > 1 MB.
+- Crea una fila en `projects` (con `user_id = auth.uid()`) y `bulk insert` en `project_files`.
+- Guarda metadatos en `project_context` (repo url, owner, branch, último commit SHA) para futuros pulls/pushes.
+- Devuelve `project_id` para redirigir a `/dashboard/projects/:id`.
+
+### 3. Análisis y mejoras con IA (reutiliza lo existente)
+Una vez importado, el usuario abre el `ProjectEditor` ya existente, que ya soporta:
+- Visor de archivos, edición en vivo, diff viewer, historial de versiones.
+- Chat con IA (`generate-code` edge function + Lovable AI Gateway, modelo `google/gemini-2.5-pro` por defecto) que puede leer el contexto del proyecto y proponer cambios.
+
+Añadiremos en `ProjectContextPanel`:
+- Badge "Importado de GitHub" con link al repo.
+- Botón **"Analizar repositorio"** → envía al chat un prompt preconfigurado (estructura, stack detectado, riesgos, mejoras sugeridas).
+- Botón **"Sincronizar cambios a GitHub"** → reutiliza `github-push` para commitear los cambios al mismo repo/branch (o a una branch nueva `darocode/<timestamp>` para no romper `main`).
+
+### 4. Seguridad (no negociable)
+- `access_token` permanece **solo en edge functions** (ya revocado del cliente).
+- Toda llamada a GitHub se hace server-side; el cliente nunca ve el token.
+- RLS existente en `projects` y `project_files` ya garantiza que cada usuario solo vea lo suyo.
+- Validación con Zod en las edge functions (`repo`, `owner`, `branch`).
+- Límite de tamaño por archivo y total para evitar abuso.
+- CORS estricto y `verify_jwt` en code (los tokens GitHub nunca se loguean).
+
+## Detalles técnicos
+
+```text
+[Dashboard] --(Importar)--> [ImportFromGitHubDialog]
+                                    |
+                       (si no conectado) -> OAuth GitHub (ya existe)
+                                    |
+                                    v
+                       [edge: github-list-repos]  -> GitHub /user/repos
+                                    |
+                                    v
+                       [edge: github-import]
+                          - lee access_token del usuario
+                          - baja tree + blobs
+                          - INSERT projects + project_files
+                                    |
+                                    v
+                       Redirect /dashboard/projects/:id
+                                    |
+                                    v
+                       [ProjectEditor existente]
+                          - Chat IA (generate-code)
+                          - Diff / versiones
+                          - "Sincronizar a GitHub" -> github-push
 ```
-https://uzzhucojelyovsowyavf.supabase.co/storage/v1/object/public/project-assets/thumbnails/...
-```
-A previous security fix (warn-level) flipped the `project-assets` bucket to **private**, so those `/object/public/...` URLs now return errors and the images don't render on the landing page.
 
-**2. `iacristiandigital@gmail.com` cannot manage Featured Projects**
+### Archivos nuevos
+- `supabase/functions/github-list-repos/index.ts`
+- `supabase/functions/github-import/index.ts`
+- `src/components/dashboard/ImportFromGitHubDialog.tsx`
+- `src/hooks/useGitHubRepos.ts`
 
-The user exists (`id = 68ca5575-3a7c-4363-8c67-ce902698196e`) but has no admin role, and the projects listed as featured belong to other users — so RLS blocks updates/deletes from this account. There is also no UI today to add/remove/reorder featured items.
+### Archivos modificados
+- `src/pages/Dashboard.tsx` y/o `src/pages/Projects.tsx` — botón "Importar desde GitHub".
+- `src/components/editor/ProjectContextPanel.tsx` — badge + botones "Analizar" y "Sincronizar".
+- `src/hooks/useGitHub.ts` — añadir `listRepos`, `importRepo`, `syncToRepo`.
 
----
+### Migración DB
+- Ninguna obligatoria. Opcional: añadir columnas `github_repo_owner`, `github_repo_name`, `github_branch`, `github_last_sha` en `projects` (o guardarlas en `project_context`). Recomiendo `project_context` para no tocar el schema principal.
 
-## Plan
-
-### A. Fix portfolio thumbnails (keep security intact)
-
-Create a second, **public, read-only** bucket dedicated to public assets, and migrate the 3 thumbnail files there. The original `project-assets` bucket stays private for user uploads.
-
-1. Migration:
-   - Create bucket `public-assets` with `public = true`.
-   - RLS on `storage.objects` for `public-assets`:
-     - SELECT: anyone (`true`)
-     - INSERT/UPDATE/DELETE: only users with role `admin`
-2. Copy the 3 existing thumbnails (`chequi.png`, `trueflow.png`, `carniceros.png`) from `project-assets/thumbnails/` into `public-assets/thumbnails/` (one-off script using the service role key in an edge function or a quick admin upload — handled at implementation time).
-3. UPDATE the 3 `projects.thumbnail_url` rows to point at `…/object/public/public-assets/thumbnails/<file>.png`.
-
-Result: thumbnails render publicly again, and user-uploaded private content stays private.
-
-### B. Admin role for `iacristiandigital@gmail.com`
-
-1. Insert a row into `user_roles`: `(user_id = 68ca5575-3a7c-4363-8c67-ce902698196e, role = 'admin')`.
-2. Add an RLS policy on `projects` so admins can `SELECT / UPDATE / DELETE / INSERT` any row using `public.has_role(auth.uid(), 'admin')`.
-
-### C. Featured Projects admin UI
-
-Add a new admin-only page **`/dashboard/featured`** (guarded by `has_role('admin')` checked client-side via a new `useIsAdmin` hook + redirect, with RLS as the real enforcement).
-
-Page features:
-- List all `projects` where `is_public = true`, ordered by a new `featured_order` column (see D).
-- For each row: edit name / description / preview_url / thumbnail_url / technologies, plus toggle `is_public`, plus delete.
-- "Add featured project" dialog: pick an existing public project OR create a new public-only entry (name, description, preview_url, thumbnail upload to `public-assets/thumbnails/`, technologies).
-- Reorder via up/down buttons (mobile-friendly) writing to `featured_order`.
-
-Entry point: a new "Proyectos Destacados" link in the dashboard sidebar, only rendered when `useIsAdmin()` is true.
-
-### D. Ordering support
-
-1. Migration: add `featured_order integer` to `projects` (nullable, default `null`). Backfill the 3 current featured rows with `1, 2, 3`.
-2. Update `usePublicProjects` to `order('featured_order', { ascending: true, nullsFirst: false })` then by `updated_at` desc as a tiebreaker.
-
----
-
-## Technical details
-
-- New bucket policies use `public.has_role(auth.uid(), 'admin')` (already exists, `SECURITY DEFINER`) — no recursion risk.
-- No changes to the existing private `project-assets` bucket or its policies.
-- `useIsAdmin` hook: simple `select` on `user_roles` filtered by `auth.uid()` and `role = 'admin'`.
-- Files to add: `src/hooks/useIsAdmin.ts`, `src/pages/FeaturedProjectsAdmin.tsx`, route in `src/App.tsx`, sidebar link update.
-- Files to edit: `src/hooks/usePublicProjects.ts` (ordering), dashboard sidebar component.
-- Migrations: one schema migration (bucket + policies + `featured_order` column + projects admin RLS), one data update (role insert + thumbnail URL rewrite + order backfill) via the insert tool.
+## Limitaciones honestas
+- Repos muy grandes (>500 archivos o >50 MB) tardarán; impondremos un límite y mostraremos progreso.
+- Binarios (imágenes, fuentes) se omitirán del editor pero se podrán subir a `project-assets` si hace falta.
+- La sincronización inversa (GitHub → DaroCode) será **manual** (botón "Volver a importar"); webhooks bidireccionales quedan fuera de este alcance.

@@ -12,6 +12,8 @@ import {
 import { useProjects, Project } from "@/hooks/useProjects";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { CreateProjectDialog } from "@/components/dashboard/CreateProjectDialog";
+import { ImportFromGitHubDialog } from "@/components/dashboard/ImportFromGitHubDialog";
+import { Github } from "lucide-react";
 import { EditProjectDialog } from "@/components/dashboard/EditProjectDialog";
 import { DeleteProjectDialog } from "@/components/dashboard/DeleteProjectDialog";
 import {
@@ -41,6 +43,7 @@ export default function Projects() {
   } = useProjects();
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [deleteProjectState, setDeleteProjectState] = useState<Project | null>(null);
 
@@ -113,10 +116,16 @@ export default function Projects() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setCreateOpen(true)} className="shrink-0">
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo proyecto
-          </Button>
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Github className="w-4 h-4 mr-2" />
+              Importar desde GitHub
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nuevo proyecto
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -247,6 +256,7 @@ export default function Projects() {
         onOpenChange={setCreateOpen}
         onSubmit={createProject}
       />
+      <ImportFromGitHubDialog open={importOpen} onOpenChange={setImportOpen} />
       <EditProjectDialog
         open={!!editProject}
         onOpenChange={(open) => !open && setEditProject(null)}
