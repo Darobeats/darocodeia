@@ -12,6 +12,8 @@ import {
 import { useProjects, Project } from "@/hooks/useProjects";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { CreateProjectDialog } from "@/components/dashboard/CreateProjectDialog";
+import { ImportFromGitHubDialog } from "@/components/dashboard/ImportFromGitHubDialog";
+import { Github } from "lucide-react";
 import { EditProjectDialog } from "@/components/dashboard/EditProjectDialog";
 import { DeleteProjectDialog } from "@/components/dashboard/DeleteProjectDialog";
 import {
