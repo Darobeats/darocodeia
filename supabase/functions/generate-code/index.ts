@@ -60,6 +60,19 @@ serve(async (req) => {
     }
     // --- End ownership verification ---
 
+    // Verify the promptId (if provided) belongs to this project
+    let safePromptId: string | null = null;
+    if (promptId) {
+      const { data: ownedPrompt } = await supabase
+        .from("project_prompts")
+        .select("id")
+        .eq("id", promptId)
+        .eq("project_id", projectId)
+        .maybeSingle();
+      if (ownedPrompt) safePromptId = ownedPrompt.id;
+    }
+
+
     // Fetch project context (memory)
     const { data: projectContext } = await supabase
       .from("project_context")
