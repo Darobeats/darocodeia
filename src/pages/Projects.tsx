@@ -116,10 +116,16 @@ export default function Projects() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setCreateOpen(true)} className="shrink-0">
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo proyecto
-          </Button>
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Github className="w-4 h-4 mr-2" />
+              Importar desde GitHub
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nuevo proyecto
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
