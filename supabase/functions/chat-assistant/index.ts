@@ -99,8 +99,10 @@ serve(async (req) => {
     }
 
     // Fetch public projects from database
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
 
     const { data: projects } = await supabase
       .from("projects")
