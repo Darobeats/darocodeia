@@ -112,7 +112,18 @@ export function ImportFromGitHubDialog({ open, onOpenChange }: Props) {
                 Necesitamos permisos para listar e importar tus repositorios de forma segura.
               </p>
             </div>
-            <Button onClick={() => initiateOAuth()}>
+            <Button
+              onClick={async () => {
+                try {
+                  await initiateOAuth();
+                } catch (err: any) {
+                  toast.error(
+                    err?.message ||
+                      "GitHub OAuth no está configurado. Pide al administrador agregar VITE_GITHUB_CLIENT_ID."
+                  );
+                }
+              }}
+            >
               <Github className="w-4 h-4 mr-2" />
               Conectar GitHub
             </Button>
