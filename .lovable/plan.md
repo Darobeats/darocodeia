@@ -1,89 +1,62 @@
-# Conectar GitHub para analizar y mejorar código con IA
+# Plan de corrección
 
-## Estado actual
+## 1. Chatbot Daro (prioridad alta)
 
-El proyecto **ya tiene** una integración con GitHub vía OAuth (`github_connections`, edge functions `github-auth` y `github-push`). Hoy solo se usa en una dirección: **exportar** un proyecto de DaroCode hacia un repo nuevo. No hay forma de **traer** un repo existente para analizarlo.
+**Problema:** `chat-assistant` exige JWT de usuario autenticado, pero el widget se usa en la landing por visitantes anónimos → 401 en todas las llamadas.
 
-Lo que falta es: importar el contenido de un repo, mostrarlo en el editor, y permitir que la IA lo analice/modifique con la misma UX que ya existe en `ProjectEditor`.
+**Solución:**
 
-## Qué se construirá
+- Quitar la validación `supabase.auth.getUser()` obligatoria en `supabase/functions/chat-assistant/index.ts`. La función ya está configurada como pública (`verify_jwt = false`) y solo lee proyectos públicos.
+- Añadir rate limiting simple por IP (en memoria) para prevenir abuso: máx. 20 requests/minuto.
+- Mantener sanitización de `currentPage` y el cap de 20 mensajes ya existente.
+- Verificar que el modelo `google/gemini-3-flash-preview` sigue respondiendo (probar con `curl_edge_functions`).
 
-### 1. Importar repositorios desde GitHub
-- Nuevo botón **"Importar desde GitHub"** en `Dashboard` / `Projects` (junto a "Crear proyecto").
-- Diálogo `ImportFromGitHubDialog` que:
-  - Si el usuario no tiene conexión GitHub → dispara el flujo OAuth ya existente (`useGitHub.initiateOAuth`).
-  - Si está conectado → lista sus repos (públicos y privados a los que tenga acceso) con buscador.
-  - Permite elegir branch (default branch por defecto).
-  - Botón "Importar" lanza una nueva edge function `github-import`.
+## 2. Conexión con GitHub
 
-### 2. Edge function `github-import` (segura)
-- Verifica JWT del usuario y que `github_connections.user_id = auth.uid()`.
-- Lee el `access_token` solo en el servidor (ya está revocado del cliente por la migración de seguridad previa).
-- Usa GitHub API: `GET /repos/{owner}/{repo}/git/trees/{branch}?recursive=1` para obtener todos los paths.
-- Descarga el contenido de cada archivo (`GET /repos/.../contents/{path}` o blobs API), filtrando binarios y archivos > 1 MB.
-- Crea una fila en `projects` (con `user_id = auth.uid()`) y `bulk insert` en `project_files`.
-- Guarda metadatos en `project_context` (repo url, owner, branch, último commit SHA) para futuros pulls/pushes.
-- Devuelve `project_id` para redirigir a `/dashboard/projects/:id`.
+**Problema:** botón silencioso porque falta `VITE_GITHUB_CLIENT_ID`, faltan secrets backend (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`) y no existe la ruta de callback.
 
-### 3. Análisis y mejoras con IA (reutiliza lo existente)
-Una vez importado, el usuario abre el `ProjectEditor` ya existente, que ya soporta:
-- Visor de archivos, edición en vivo, diff viewer, historial de versiones.
-- Chat con IA (`generate-code` edge function + Lovable AI Gateway, modelo `google/gemini-2.5-pro` por defecto) que puede leer el contexto del proyecto y proponer cambios.
+**Solución por pasos:**
 
-Añadiremos en `ProjectContextPanel`:
-- Badge "Importado de GitHub" con link al repo.
-- Botón **"Analizar repositorio"** → envía al chat un prompt preconfigurado (estructura, stack detectado, riesgos, mejoras sugeridas).
-- Botón **"Sincronizar cambios a GitHub"** → reutiliza `github-push` para commitear los cambios al mismo repo/branch (o a una branch nueva `darocode/<timestamp>` para no romper `main`).
+### 2a. Manejo de errores visible
 
-### 4. Seguridad (no negociable)
-- `access_token` permanece **solo en edge functions** (ya revocado del cliente).
-- Toda llamada a GitHub se hace server-side; el cliente nunca ve el token.
-- RLS existente en `projects` y `project_files` ya garantiza que cada usuario solo vea lo suyo.
-- Validación con Zod en las edge functions (`repo`, `owner`, `branch`).
-- Límite de tamaño por archivo y total para evitar abuso.
-- CORS estricto y `verify_jwt` en code (los tokens GitHub nunca se loguean).
+- En `ImportFromGitHubDialog` y en cualquier otro CTA de "Conectar GitHub": envolver `initiateOAuth()` en `try/catch` y mostrar `toast.error(...)` con instrucciones cuando falte la configuración.
 
-## Detalles técnicos
+### 2b. Crear ruta de callback OAuth
 
-```text
-[Dashboard] --(Importar)--> [ImportFromGitHubDialog]
-                                    |
-                       (si no conectado) -> OAuth GitHub (ya existe)
-                                    |
-                                    v
-                       [edge: github-list-repos]  -> GitHub /user/repos
-                                    |
-                                    v
-                       [edge: github-import]
-                          - lee access_token del usuario
-                          - baja tree + blobs
-                          - INSERT projects + project_files
-                                    |
-                                    v
-                       Redirect /dashboard/projects/:id
-                                    |
-                                    v
-                       [ProjectEditor existente]
-                          - Chat IA (generate-code)
-                          - Diff / versiones
-                          - "Sincronizar a GitHub" -> github-push
-```
+- Nueva página `src/pages/GitHubCallback.tsx` en la ruta `/api/github/callback` (montada en `App.tsx`) que:
+  - Lee `code` y `state` del query string.
+  - Llama `handleOAuthCallback(code, state)` de `useGitHub`.
+  - Muestra estado (loading/éxito/error) y redirige a `/dashboard/projects` al terminar.
 
-### Archivos nuevos
-- `supabase/functions/github-list-repos/index.ts`
-- `supabase/functions/github-import/index.ts`
-- `src/components/dashboard/ImportFromGitHubDialog.tsx`
-- `src/hooks/useGitHubRepos.ts`
+### 2c. Configuración requerida (acción del usuario)
 
-### Archivos modificados
-- `src/pages/Dashboard.tsx` y/o `src/pages/Projects.tsx` — botón "Importar desde GitHub".
-- `src/components/editor/ProjectContextPanel.tsx` — badge + botones "Analizar" y "Sincronizar".
-- `src/hooks/useGitHub.ts` — añadir `listRepos`, `importRepo`, `syncToRepo`.
+El usuario debe:
 
-### Migración DB
-- Ninguna obligatoria. Opcional: añadir columnas `github_repo_owner`, `github_repo_name`, `github_branch`, `github_last_sha` en `projects` (o guardarlas en `project_context`). Recomiendo `project_context` para no tocar el schema principal.
+1. Crear una **OAuth App** en GitHub → Settings → Developer settings → OAuth Apps:
+  - Homepage URL: `https://darocodeia.com`
+  - Authorization callback URL: `https://darocodeia.com/api/github/callback` (y el de preview)
+2. Proporcionar:
+  - `GITHUB_CLIENT_ID` (público, va al frontend como `VITE_GITHUB_CLIENT_ID`)
+  - `GITHUB_CLIENT_SECRET` (privado, va a secrets del backend)
 
-## Limitaciones honestas
-- Repos muy grandes (>500 archivos o >50 MB) tardarán; impondremos un límite y mostraremos progreso.
-- Binarios (imágenes, fuentes) se omitirán del editor pero se podrán subir a `project-assets` si hace falta.
-- La sincronización inversa (GitHub → DaroCode) será **manual** (botón "Volver a importar"); webhooks bidireccionales quedan fuera de este alcance.
+Tras confirmar, se guardarán los secrets correspondientes (frontend usa `import.meta.env.VITE_GITHUB_CLIENT_ID`; backend usa `Deno.env.get`).
+
+## 3. Auditoría general
+
+- Verificar que las edge functions GitHub (`github-auth`, `github-list-repos`, `github-import`, `github-push`) responden con CORS y errores genéricos correctos.
+- Revisar `supabase/config.toml`: añadir bloques `verify_jwt = false` solo donde aplique públicamente; las funciones GitHub deben permanecer protegidas (requieren usuario).
+- Probar cada función con `curl_edge_functions` para detectar errores 500 ocultos.
+- Revisar consola del navegador buscando errores que el usuario no haya reportado.
+
+## Archivos a tocar (estimado)
+
+- `supabase/functions/chat-assistant/index.ts` (quitar auth obligatoria, añadir rate limit)
+- `src/pages/GitHubCallback.tsx` (nuevo)
+- `src/App.tsx` (registrar ruta callback)
+- `src/components/dashboard/ImportFromGitHubDialog.tsx` (manejo de errores)
+- `src/hooks/useGitHub.ts` (mensajes de error más claros)
+
+## Preguntas para el usuario antes de implementar
+
+1. ¿Confirmas que quieres que el chatbot sea **público** (cualquier visitante puede usarlo)? Es lo que estaba antes. 
+2. ¿Ya tienes una **OAuth App de GitHub** creada? Si no, te indico los pasos exactos y luego pides los secrets.
