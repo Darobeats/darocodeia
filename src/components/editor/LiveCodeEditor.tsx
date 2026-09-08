@@ -17,6 +17,8 @@ import {
   Terminal,
   X,
   Save,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { toast } from "sonner";
 
