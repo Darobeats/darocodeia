@@ -465,7 +465,7 @@ export default function LiveCodeEditor({
           externalResources: ["https://cdn.tailwindcss.com"],
           recompileMode: "delayed",
           recompileDelay: 500,
-ақ        }}
+}}
         theme="dark"
       >
         <EditorWithSync
