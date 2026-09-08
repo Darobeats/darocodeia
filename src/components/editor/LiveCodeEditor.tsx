@@ -215,16 +215,20 @@ function EditorWithSync({
   setViewport,
   showConsole,
   setShowConsole,
+  isFullscreen,
+  setIsFullscreen,
   onFileChange,
 }: {
   viewport: ViewportSize;
   setViewport: (v: ViewportSize) => void;
   showConsole: boolean;
   setShowConsole: (v: boolean) => void;
+  isFullscreen: boolean;
+  setIsFullscreen: (v: boolean) => void;
   onFileChange?: (filePath: string, content: string) => void;
 }) {
   const { sandpack } = useSandpack();
-  const { files, activeFile } = sandpack;
+  const { files } = sandpack;
   const [hasChanges, setHasChanges] = useState(false);
   const [lastSyncedFiles, setLastSyncedFiles] = useState<string>("");
 
