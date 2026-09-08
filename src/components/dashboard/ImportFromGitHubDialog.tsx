@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,9 +79,9 @@ export function ImportFromGitHubDialog({ open, onOpenChange }: Props) {
       toast.success(`Importado: ${data.files_imported} archivos`);
       onOpenChange(false);
       navigate(`/dashboard/projects/${data.project_id}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err?.message || "Error al importar el repositorio");
+      toast.error(getErrorMessage(err, "Error al importar el repositorio"));
     } finally {
       setImportingId(null);
     }
@@ -116,9 +117,9 @@ export function ImportFromGitHubDialog({ open, onOpenChange }: Props) {
               onClick={async () => {
                 try {
                   await initiateOAuth();
-                } catch (err: any) {
+                } catch (err: unknown) {
                   toast.error(
-                    err?.message ||
+                    getErrorMessage(err,
                       "GitHub OAuth no está configurado. Pide al administrador agregar VITE_GITHUB_CLIENT_ID."
                   );
                 }

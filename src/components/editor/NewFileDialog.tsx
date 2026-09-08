@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useState, useRef } from "react";
 import {
   Dialog,
@@ -58,8 +59,8 @@ export function NewFileDialog({
       onFileCreated(filePath, getDefaultContent(filePath));
       toast.success("Archivo creado exitosamente");
       handleClose();
-    } catch (err: any) {
-      toast.error(err.message || "Error al crear el archivo");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Error al crear el archivo"));
     } finally {
       setLoading(false);
     }
@@ -107,8 +108,8 @@ export function NewFileDialog({
       onFileCreated(refPath, publicUrl, true);
       toast.success("Imagen subida exitosamente. Puedes referenciarla en tus prompts.");
       handleClose();
-    } catch (err: any) {
-      toast.error(err.message || "Error al subir la imagen");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Error al subir la imagen"));
     } finally {
       setLoading(false);
     }
