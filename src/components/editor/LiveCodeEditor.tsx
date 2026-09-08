@@ -439,14 +439,18 @@ export default function LiveCodeEditor({
 }: LiveCodeEditorProps) {
   const [viewport, setViewport] = useState<ViewportSize>("desktop");
   const [showConsole, setShowConsole] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const sandpackFiles = useMemo(() => transformFilesToSandpack(files), [files]);
 
   const dependencies = {
     react: "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.26.0",
     "lucide-react": "^0.462.0",
     "framer-motion": "^12.0.0",
+    clsx: "^2.1.1",
+    "tailwind-merge": "^2.5.2",
   };
 
   return (
@@ -461,7 +465,7 @@ export default function LiveCodeEditor({
           externalResources: ["https://cdn.tailwindcss.com"],
           recompileMode: "delayed",
           recompileDelay: 500,
-        }}
+ақ        }}
         theme="dark"
       >
         <EditorWithSync
@@ -469,6 +473,8 @@ export default function LiveCodeEditor({
           setViewport={setViewport}
           showConsole={showConsole}
           setShowConsole={setShowConsole}
+          isFullscreen={isFullscreen}
+          setIsFullscreen={setIsFullscreen}
           onFileChange={onFileChange}
         />
       </SandpackProvider>
