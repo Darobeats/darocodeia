@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@/data/version";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
