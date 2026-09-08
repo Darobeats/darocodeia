@@ -83,7 +83,13 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+
 
   const handleSaveProfile = async () => {
     if (!user) return;
