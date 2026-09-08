@@ -367,13 +367,35 @@ function EditorWithSync({
           >
             <RotateCcw className="w-4 h-4" />
           </Button>
+          <Button
+            variant={isFullscreen ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4" />
+            ) : (
+              <Maximize2 className="w-4 h-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleOpenExternal}
+            title="Abrir en nueva pestaña"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
       {/* Editor + Preview */}
       <div className="flex-1 flex overflow-hidden">
         {/* Code Editor */}
-        <div className="w-1/2 border-r border-border">
+        <div className={`${isFullscreen ? "hidden" : "w-1/2"} border-r border-border`}>
           <SandpackCodeEditor
             showTabs
             showLineNumbers
