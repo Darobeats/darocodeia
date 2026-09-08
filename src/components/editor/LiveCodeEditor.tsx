@@ -274,6 +274,18 @@ function EditorWithSync({
     sandpack.runSandpack();
   };
 
+  const handleOpenExternal = () => {
+    const client = Object.values(sandpack.clients ?? {})[0] as
+      | { iframe?: HTMLIFrameElement }
+      | undefined;
+    const url = client?.iframe?.src;
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      toast.error("La vista previa aún se está cargando");
+    }
+  };
+
   const handleManualSave = () => {
     if (!onFileChange) return;
     
