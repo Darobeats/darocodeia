@@ -45,21 +45,6 @@ const VIEWPORT_SIZES: Record<ViewportSize, { width: string; label: string }> = {
 function transformFilesToSandpack(files: ProjectFile[]): Record<string, string> {
   const sandpackFiles: Record<string, string> = {};
 
-  // Base entry point
-  sandpackFiles["/index.tsx"] = `
-import React from "react";
-import { createRoot } from "react-dom/client";
-import App from "./App";
-import "./styles.css";
-
-const root = createRoot(document.getElementById("root")!);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
-`;
-
   // Base HTML
   sandpackFiles["/public/index.html"] = `
 <!DOCTYPE html>
@@ -98,24 +83,26 @@ body {
 }
 `;
 
-  // Default App component if none exists
   let hasAppComponent = false;
+  let appContent = "";
+  let usesRouter = false;
 
   files.forEach((file) => {
     const path = file.file_path;
     const content = file.content || "";
 
-    // Normalize path for Sandpack (must start with /)
-    let sandpackPath = path.startsWith("/") ? path : `/${path}`;
+    if (/from\s+["']react-router-dom["']/.test(content)) usesRouter = true;
 
-    // Handle common path patterns
+    // Normalize path for Sandpack (must start with /), keeping subfolders intact
+    let sandpackPath = path.startsWith("/") ? path : `/${path}`;
     if (sandpackPath.startsWith("/src/")) {
       sandpackPath = sandpackPath.replace("/src/", "/");
     }
 
     // Check if this is the App component
-    if (sandpackPath.includes("App.tsx") || sandpackPath.includes("App.jsx")) {
+    if (/\/App\.(tsx|jsx)$/.test(sandpackPath)) {
       hasAppComponent = true;
+      appContent = content;
       sandpackFiles["/App.tsx"] = content;
     } else if (sandpackPath.endsWith(".css")) {
       // Merge CSS files
@@ -141,15 +128,15 @@ body {
     if (componentFiles.length > 0) {
       // Import and render the first component
       const firstComponent = componentFiles[0];
+      const relativePath = firstComponent.file_path
+        .replace(/^\/?src\//, "")
+        .replace(/\.(tsx|jsx)$/, "");
       const componentName =
-        firstComponent.file_path
-          .split("/")
-          .pop()
-          ?.replace(/\.(tsx|jsx)$/, "") || "Component";
+        relativePath.split("/").pop()?.replace(/[^A-Za-z0-9_]/g, "") || "Component";
 
       sandpackFiles["/App.tsx"] = `
 import React from "react";
-import ${componentName} from "./${componentName}";
+import ${componentName} from "./${relativePath}";
 
 export default function App() {
   return (
@@ -181,6 +168,43 @@ export default function App() {
 `;
     }
   }
+
+  // If the project uses react-router-dom but never creates a router itself,
+  // wrap the app so navigation between pages works inside the preview.
+  const appCreatesRouter =
+    /BrowserRouter|HashRouter|MemoryRouter|createBrowserRouter|RouterProvider/.test(appContent);
+  const needsRouterWrapper = usesRouter && !appCreatesRouter;
+
+  sandpackFiles["/index.tsx"] = needsRouterWrapper
+    ? `
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+import "./styles.css";
+
+const root = createRoot(document.getElementById("root")!);
+root.render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+`
+    : `
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./styles.css";
+
+const root = createRoot(document.getElementById("root")!);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+`;
 
   return sandpackFiles;
 }
