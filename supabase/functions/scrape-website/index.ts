@@ -100,7 +100,6 @@ serve(async (req) => {
       );
     }
 
-    console.log("Scraping URL for duplication:", formattedUrl, "by user:", user.id);
 
     const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
@@ -129,7 +128,6 @@ serve(async (req) => {
       );
     }
 
-    console.log("Scrape successful for:", formattedUrl);
 
     const result = {
       success: true,
