@@ -369,7 +369,7 @@ function EditorWithSync({
         </div>
 
         {/* Preview */}
-        <div className="w-1/2 flex flex-col">
+        <div className={`${isFullscreen ? "w-full" : "w-1/2"} flex flex-col`}>
           <div
             className="flex-1 flex justify-center bg-secondary/30 overflow-auto p-4"
             style={{ minHeight: showConsole ? "60%" : "100%" }}
@@ -384,8 +384,8 @@ function EditorWithSync({
               className="bg-background rounded-lg shadow-lg overflow-hidden border border-border"
             >
               <SandpackPreview
-                showNavigator={false}
-                showRefreshButton={false}
+                showNavigator
+                showRefreshButton
                 showOpenInCodeSandbox={false}
                 style={{ height: "100%" }}
               />
