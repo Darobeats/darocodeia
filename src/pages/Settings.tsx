@@ -47,11 +47,7 @@ export default function Settings() {
     weekly_digest: false,
   });
 
-  useEffect(() => {
-    fetchProfile();
-  }, [user]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
