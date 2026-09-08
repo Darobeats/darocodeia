@@ -1,62 +1,52 @@
-# Plan de corrección
+# Asistente, generación de código, vista previa y auditoría
 
-## 1. Chatbot Daro (prioridad alta)
+## Qué encontré (verificado)
 
-**Problema:** `chat-assistant` exige JWT de usuario autenticado, pero el widget se usa en la landing por visitantes anónimos → 401 en todas las llamadas.
+- **El asistente no responde porque exige sesión y rechaza a quien pregunta.** Al llamar al servicio publicado responde "no autorizado" (401), incluso con la clave pública del sitio. Por eso ni los botones de sugerencias devuelven nada.
+- **El modelo de IA configurado sí existe** (`google/gemini-3-flash-preview` aparece en el catálogo), así que el problema no era el modelo; aun así conviene pasar a uno más reciente y capaz.
+- **La vista previa no puede navegar entre páginas.** El componente de previa mete todos los archivos en un solo espacio con una única pantalla de inicio y no incluye la librería de navegación (`react-router-dom`), así que cualquier proyecto con varias páginas no enruta.
+- **Hay código duplicado y muerto.** `src/components/editor/LivePreview.tsx` (347 líneas) no se usa en ninguna parte y es casi idéntico a `src/components/editor/LiveCodeEditor.tsx`, que sí es el que se muestra. Contiene además un botón "abrir en otra pestaña" falso que abre una página en blanco.
+- **Calidad de código:** 20 errores y 13 advertencias de linter (tipos `any` en proyectos, portafolio, destacados, login, registro y callback de GitHub; dependencias de efectos incompletas en el editor y en ajustes; interfaces vacías en dos componentes de interfaz) y dos registros de depuración olvidados en la función de extracción de webs.
+- **La generación de código es de un solo intento:** manda todos los archivos del proyecto en cada petición, guarda archivo por archivo, y si la respuesta de la IA viene mal formada devuelve "éxito" con cero archivos creados.
 
-**Solución:**
+## Qué haré
 
-- Quitar la validación `supabase.auth.getUser()` obligatoria en `supabase/functions/chat-assistant/index.ts`. La función ya está configurada como pública (`verify_jwt = false`) y solo lee proyectos públicos.
-- Añadir rate limiting simple por IP (en memoria) para prevenir abuso: máx. 20 requests/minuto.
-- Mantener sanitización de `currentPage` y el cap de 20 mensajes ya existente.
-- Verificar que el modelo `google/gemini-3-flash-preview` sigue respondiendo (probar con `curl_edge_functions`).
+### 1. Asistente virtual (solo usuarios registrados, nivel alto)
+- Exigir sesión iniciada en el servicio del asistente y validar al usuario en el servidor; límite de 30 mensajes por minuto por usuario.
+- El chat enviará el token de la sesión del usuario. Si alguien no ha iniciado sesión, el chat mostrará un mensaje claro con enlace a iniciar sesión o registrarse, en lugar de quedarse callado.
+- Ampliar el conocimiento del asistente: funciones reales del sitio, precios, rutas exactas, y guías paso a paso (crear cuenta, crear proyecto, generar código, importar desde GitHub, exportar, visor de enlaces, destacados).
+- Actualizar el modelo a `google/gemini-3.8-flash` y mostrar en pantalla cualquier fallo del servicio de IA (créditos agotados, límite de uso) en vez de silenciarlo.
+- Reponer (redeploy) el servicio, porque la versión publicada está desactualizada respecto al código del proyecto.
 
-## 2. Conexión con GitHub
+### 2. Vista previa: navegación completa + pantalla completa + pestaña aparte
+- Añadir `react-router-dom` (y utilidades de estilo) a las dependencias de la previa.
+- Conservar la estructura de carpetas del proyecto y detectar si el código usa navegación: si la usa y no crea su propio enrutador, envolver la aplicación automáticamente para que las rutas funcionen.
+- Activar la barra de direcciones de la previa (ir atrás/adelante, escribir una ruta) para poder recorrer todas las páginas.
+- Botón de pantalla completa (la previa ocupa todo el editor) y botón real de "abrir en otra pestaña" con la dirección de la previa.
+- Recordar a la IA generadora que puede crear varias páginas con navegación, ya soportada por la previa.
 
-**Problema:** botón silencioso porque falta `VITE_GITHUB_CLIENT_ID`, faltan secrets backend (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`) y no existe la ruta de callback.
+### 3. Generación de código: preparada para crecer
+- Guardar los archivos en un solo envío por lote en lugar de uno por uno.
+- Limitar el tamaño del contexto enviado (archivos existentes) para que proyectos grandes no fallen ni encarezcan.
+- Validar las rutas de archivo recibidas y rechazar rutas inseguras.
+- Si la respuesta de la IA no se puede interpretar, pedir una corrección una vez y, si vuelve a fallar, informar el error en pantalla en vez de decir "listo" sin crear nada.
+- Añadir una entrada al historial de versiones por cada archivo que la IA modifica.
 
-**Solución por pasos:**
+### 4. Limpieza y auditoría interna
+- Eliminar `LivePreview.tsx` (duplicado y muerto) y el botón falso que contiene.
+- Unificar el código repetido de lectura del flujo de respuestas del chat.
+- Corregir los tipos `any` señalados, las dependencias de efectos del editor y de ajustes, y las interfaces vacías.
+- Quitar los registros de depuración de la función de extracción de webs.
+- Revisar que ningún dato sensible salga al navegador y volver a ejecutar el análisis de seguridad al final.
 
-### 2a. Manejo de errores visible
+### 5. Versión y hoja de ruta
+- Añadir una versión visible del producto (v1.0.0) y un archivo de novedades con lo que trae y lo que viene: sincronización de cambios hacia GitHub, previas con varias páginas guardadas, colaboración en tiempo real y despliegue directo.
 
-- En `ImportFromGitHubDialog` y en cualquier otro CTA de "Conectar GitHub": envolver `initiateOAuth()` en `try/catch` y mostrar `toast.error(...)` con instrucciones cuando falte la configuración.
+## Detalles técnicos
 
-### 2b. Crear ruta de callback OAuth
-
-- Nueva página `src/pages/GitHubCallback.tsx` en la ruta `/api/github/callback` (montada en `App.tsx`) que:
-  - Lee `code` y `state` del query string.
-  - Llama `handleOAuthCallback(code, state)` de `useGitHub`.
-  - Muestra estado (loading/éxito/error) y redirige a `/dashboard/projects` al terminar.
-
-### 2c. Configuración requerida (acción del usuario)
-
-El usuario debe:
-
-1. Crear una **OAuth App** en GitHub → Settings → Developer settings → OAuth Apps:
-  - Homepage URL: `https://darocodeia.com`
-  - Authorization callback URL: `https://darocodeia.com/api/github/callback` (y el de preview)
-2. Proporcionar:
-  - `GITHUB_CLIENT_ID` (público, va al frontend como `VITE_GITHUB_CLIENT_ID`)
-  - `GITHUB_CLIENT_SECRET` (privado, va a secrets del backend)
-
-Tras confirmar, se guardarán los secrets correspondientes (frontend usa `import.meta.env.VITE_GITHUB_CLIENT_ID`; backend usa `Deno.env.get`).
-
-## 3. Auditoría general
-
-- Verificar que las edge functions GitHub (`github-auth`, `github-list-repos`, `github-import`, `github-push`) responden con CORS y errores genéricos correctos.
-- Revisar `supabase/config.toml`: añadir bloques `verify_jwt = false` solo donde aplique públicamente; las funciones GitHub deben permanecer protegidas (requieren usuario).
-- Probar cada función con `curl_edge_functions` para detectar errores 500 ocultos.
-- Revisar consola del navegador buscando errores que el usuario no haya reportado.
-
-## Archivos a tocar (estimado)
-
-- `supabase/functions/chat-assistant/index.ts` (quitar auth obligatoria, añadir rate limit)
-- `src/pages/GitHubCallback.tsx` (nuevo)
-- `src/App.tsx` (registrar ruta callback)
-- `src/components/dashboard/ImportFromGitHubDialog.tsx` (manejo de errores)
-- `src/hooks/useGitHub.ts` (mensajes de error más claros)
-
-## Preguntas para el usuario antes de implementar
-
-1. ¿Confirmas que quieres que el chatbot sea **público** (cualquier visitante puede usarlo)? Es lo que estaba antes. 
-2. ¿Ya tienes una **OAuth App de GitHub** creada? Si no, te indico los pasos exactos y luego pides los secrets.
+- `supabase/functions/chat-assistant/index.ts`: validación de JWT en código (`auth.getUser`), rechazo del token anónimo, rate limit por `user.id`, prompt ampliado, modelo `google/gemini-3.8-flash`, errores 402/429/5xx propagados.
+- `src/hooks/useChatAssistant.ts`: obtener `supabase.auth.getSession()`, enviar `Bearer <access_token>`, manejar 401 con mensaje localizado; extraer el parseo SSE a una función reutilizable.
+- `src/components/editor/LiveCodeEditor.tsx`: `customSetup.dependencies` con `react-router-dom`, `clsx`, `tailwind-merge`; `transformFilesToSandpack` conserva subcarpetas; envoltura condicional con `BrowserRouter` en `/index.tsx`; `SandpackPreview showNavigator`; estado `isFullscreen`; apertura externa vía `sandpack.clients[...].iframe.src`.
+- `supabase/functions/generate-code/index.ts`: upsert por lote, recorte de contexto, validación de `file.path`, reintento de parseo, inserción en la tabla de versiones de archivo.
+- Borrado de `src/components/editor/LivePreview.tsx`; correcciones de ESLint en los archivos listados.
+- Al final: `tsgo` (tipos), `bunx vitest run` (pruebas) y nuevo escaneo de seguridad.
