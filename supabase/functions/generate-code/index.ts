@@ -244,7 +244,7 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessageContent },
