@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ChatMessage {
   id: string;
@@ -10,6 +11,40 @@ export interface ChatMessage {
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-assistant`;
+
+const AUTH_REQUIRED_MESSAGE = {
+  es: "Para conversar conmigo necesitas una cuenta. Inicia sesión en /login o crea tu cuenta gratis en /register y vuelve a preguntarme. 🙂",
+  en: "You need an account to chat with me. Sign in at /login or create your free account at /register and ask me again. 🙂",
+};
+
+const LIMIT_MESSAGE = {
+  es: "Estoy recibiendo demasiadas preguntas en este momento. Espera unos segundos e inténtalo de nuevo.",
+  en: "I'm getting too many questions right now. Wait a few seconds and try again.",
+};
+
+/** Extract assistant text deltas from a batch of SSE lines. Returns [text, done]. */
+function parseSseLines(lines: string[]): [string, boolean] {
+  let text = "";
+  let done = false;
+  for (let line of lines) {
+    if (line.endsWith("\r")) line = line.slice(0, -1);
+    if (!line || line.startsWith(":") || line.trim() === "") continue;
+    if (!line.startsWith("data: ")) continue;
+    const jsonStr = line.slice(6).trim();
+    if (jsonStr === "[DONE]") {
+      done = true;
+      break;
+    }
+    try {
+      const parsed = JSON.parse(jsonStr);
+      const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
+      if (delta) text += delta;
+    } catch {
+      /* incomplete chunk: ignore, it will arrive complete on the next read */
+    }
+  }
+  return [text, done];
+}
 
 export function useChatAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -33,10 +68,17 @@ export function useChatAssistant() {
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
 
+      const pushAssistant = (text: string) =>
+        setMessages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), role: "assistant", content: text, timestamp: new Date() },
+        ]);
+
       let assistantContent = "";
       const assistantId = crypto.randomUUID();
 
       const upsertAssistant = (nextChunk: string) => {
+        if (!nextChunk) return;
         assistantContent += nextChunk;
         setMessages((prev) => {
           const last = prev[prev.length - 1];
@@ -58,6 +100,16 @@ export function useChatAssistant() {
       };
 
       try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          setError(AUTH_REQUIRED_MESSAGE[locale === "en" ? "en" : "es"]);
+          pushAssistant(AUTH_REQUIRED_MESSAGE[locale === "en" ? "en" : "es"]);
+          return;
+        }
+
         const apiMessages = [...messages, userMessage].map((m) => ({
           role: m.role,
           content: m.content,
@@ -67,7 +119,8 @@ export function useChatAssistant() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             messages: apiMessages,
@@ -76,14 +129,26 @@ export function useChatAssistant() {
           }),
         });
 
+        if (resp.status === 401) {
+          const msg = AUTH_REQUIRED_MESSAGE[locale === "en" ? "en" : "es"];
+          setError(msg);
+          pushAssistant(msg);
+          return;
+        }
+
+        if (resp.status === 429) {
+          const msg = LIMIT_MESSAGE[locale === "en" ? "en" : "es"];
+          setError(msg);
+          pushAssistant(msg);
+          return;
+        }
+
         if (!resp.ok) {
           const errorData = await resp.json().catch(() => ({}));
           throw new Error(errorData.error || `HTTP error ${resp.status}`);
         }
 
-        if (!resp.body) {
-          throw new Error("No response body");
-        }
+        if (!resp.body) throw new Error("No response body");
 
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
@@ -95,65 +160,25 @@ export function useChatAssistant() {
           if (done) break;
           textBuffer += decoder.decode(value, { stream: true });
 
-          let newlineIndex: number;
-          while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-            let line = textBuffer.slice(0, newlineIndex);
-            textBuffer = textBuffer.slice(newlineIndex + 1);
+          const lastNewline = textBuffer.lastIndexOf("\n");
+          if (lastNewline === -1) continue;
+          const complete = textBuffer.slice(0, lastNewline).split("\n");
+          textBuffer = textBuffer.slice(lastNewline + 1);
 
-            if (line.endsWith("\r")) line = line.slice(0, -1);
-            if (line.startsWith(":") || line.trim() === "") continue;
-            if (!line.startsWith("data: ")) continue;
-
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === "[DONE]") {
-              streamDone = true;
-              break;
-            }
-
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const deltaContent = parsed.choices?.[0]?.delta?.content as string | undefined;
-              if (deltaContent) upsertAssistant(deltaContent);
-            } catch {
-              textBuffer = line + "\n" + textBuffer;
-              break;
-            }
-          }
+          const [text, finished] = parseSseLines(complete);
+          upsertAssistant(text);
+          if (finished) streamDone = true;
         }
 
-        // Final flush
+        // Final flush of whatever is left in the buffer
         if (textBuffer.trim()) {
-          for (let raw of textBuffer.split("\n")) {
-            if (!raw) continue;
-            if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-            if (raw.startsWith(":") || raw.trim() === "") continue;
-            if (!raw.startsWith("data: ")) continue;
-            const jsonStr = raw.slice(6).trim();
-            if (jsonStr === "[DONE]") continue;
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const deltaContent = parsed.choices?.[0]?.delta?.content as string | undefined;
-              if (deltaContent) upsertAssistant(deltaContent);
-            } catch {
-              /* ignore */
-            }
-          }
+          const [text] = parseSseLines(textBuffer.split("\n"));
+          upsertAssistant(text);
         }
       } catch (err) {
         console.error("Chat error:", err);
-        const errorMessage = err instanceof Error ? err.message : t("chat.error");
-        setError(errorMessage);
-        
-        // Add error message as assistant response
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            content: t("chat.error"),
-            timestamp: new Date(),
-          },
-        ]);
+        setError(err instanceof Error ? err.message : t("chat.error"));
+        pushAssistant(t("chat.error"));
       } finally {
         setIsLoading(false);
       }

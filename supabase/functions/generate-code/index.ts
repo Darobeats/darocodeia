@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MODEL = "google/gemini-3.8-flash";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -126,12 +128,26 @@ Use these project-specific settings when generating code.
       }
     }
 
-    // Build context from existing files
-    const existingFilesContext = existingFiles?.length > 0
-      ? `\n\nExisting files in the project:\n${existingFiles.map((f: { path: string; content: string }) =>
-          `--- ${f.path} ---\n${f.content || "(empty)"}`
-        ).join("\n\n")}`
-      : "";
+    // Build context from existing files, capped so large projects stay within limits
+    const MAX_FILES_IN_CONTEXT = 40;
+    const MAX_CHARS_PER_FILE = 8000;
+    const MAX_TOTAL_CONTEXT_CHARS = 120_000;
+
+    let contextChars = 0;
+    const contextParts: string[] = [];
+    for (const f of (existingFiles ?? []).slice(0, MAX_FILES_IN_CONTEXT) as Array<{
+      path: string;
+      content: string;
+    }>) {
+      const body = (f.content || "(empty)").slice(0, MAX_CHARS_PER_FILE);
+      if (contextChars + body.length > MAX_TOTAL_CONTEXT_CHARS) break;
+      contextChars += body.length;
+      contextParts.push(`--- ${f.path} ---\n${body}`);
+    }
+    const existingFilesContext =
+      contextParts.length > 0
+        ? `\n\nExisting files in the project (may be truncated):\n${contextParts.join("\n\n")}`
+        : "";
 
     // Build website context for duplication
     let websiteContextPrompt = "";
@@ -185,6 +201,7 @@ When generating code:
 3. Create modular, reusable components
 4. Follow best practices for accessibility and performance
 5. Include helpful comments
+6. Multi-page apps are supported: you may use react-router-dom (available in the live preview). Keep pages in src/pages/ and define routes in src/App.tsx
 
 IMPORTANT: You MUST respond with a JSON object containing:
 - "response": A brief explanation of what you created (in Spanish)
@@ -229,7 +246,7 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessageContent },
@@ -277,26 +294,100 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
       throw new Error("No content in AI response");
     }
 
-    // Parse the AI response
-    let parsedResponse: { response: string; files: Array<{ path: string; content: string }> };
-    try {
-      let cleanContent = content.trim();
-      if (cleanContent.startsWith("```json")) {
-        cleanContent = cleanContent.slice(7);
-      } else if (cleanContent.startsWith("```")) {
-        cleanContent = cleanContent.slice(3);
+    type GeneratedFile = { path: string; content: string };
+    type ParsedResponse = { response: string; files: GeneratedFile[] };
+
+    const stripFences = (raw: string) => {
+      let clean = raw.trim();
+      if (clean.startsWith("```json")) clean = clean.slice(7);
+      else if (clean.startsWith("```")) clean = clean.slice(3);
+      if (clean.endsWith("```")) clean = clean.slice(0, -3);
+      return clean.trim();
+    };
+
+    const tryParse = (raw: string): ParsedResponse | null => {
+      try {
+        const parsed = JSON.parse(stripFences(raw));
+        if (parsed && typeof parsed === "object") return parsed as ParsedResponse;
+      } catch {
+        // fall through
       }
-      if (cleanContent.endsWith("```")) {
-        cleanContent = cleanContent.slice(0, -3);
+      return null;
+    };
+
+    let parsedResponse = tryParse(content);
+
+    // One repair attempt: ask the model to return valid JSON only.
+    if (!parsedResponse) {
+      console.error("Failed to parse AI response, attempting repair");
+      const repair = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            {
+              role: "system",
+              content:
+                'Convert the following text into ONE valid JSON object with exactly the keys "response" (string) and "files" (array of {path, content}). Output JSON only, no markdown.',
+            },
+            { role: "user", content: content.slice(0, 60000) },
+          ],
+        }),
+      });
+      if (repair.ok) {
+        const repairData = await repair.json();
+        parsedResponse = tryParse(repairData.choices?.[0]?.message?.content ?? "");
       }
-      parsedResponse = JSON.parse(cleanContent.trim());
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
-      parsedResponse = {
-        response: content,
-        files: [],
-      };
     }
+
+    if (!parsedResponse) {
+      if (safePromptId) {
+        await supabase
+          .from("project_prompts")
+          .update({
+            status: "error",
+            response: "La IA devolvió una respuesta que no se pudo interpretar. Intenta de nuevo.",
+          })
+          .eq("id", safePromptId);
+      }
+      return new Response(
+        JSON.stringify({ error: "Invalid AI response format" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate and normalize file paths
+    const langMap: Record<string, string> = {
+      ts: "typescript",
+      tsx: "typescript",
+      js: "javascript",
+      jsx: "javascript",
+      css: "css",
+      html: "html",
+      json: "json",
+      md: "markdown",
+    };
+
+    const safeFiles = (Array.isArray(parsedResponse.files) ? parsedResponse.files : [])
+      .filter(
+        (f): f is GeneratedFile =>
+          !!f && typeof f.path === "string" && typeof f.content === "string"
+      )
+      .map((f) => ({ ...f, path: f.path.replace(/^\/+/, "").trim() }))
+      .filter(
+        (f) =>
+          f.path.length > 0 &&
+          f.path.length <= 300 &&
+          !f.path.includes("..") &&
+          !f.path.includes("\\") &&
+          !/^[a-zA-Z]:/.test(f.path) &&
+          f.content.length <= 400_000
+      )
+      .slice(0, 200);
 
     // Update prompt with response
     if (safePromptId) {
@@ -310,36 +401,60 @@ Always respond in valid JSON format. Do not include markdown code blocks.${exist
         .eq("id", safePromptId);
     }
 
-    // Create or update files
-    if (parsedResponse.files && parsedResponse.files.length > 0) {
-      for (const file of parsedResponse.files) {
-        const ext = file.path.split(".").pop()?.toLowerCase();
-        const langMap: Record<string, string> = {
-          ts: "typescript",
-          tsx: "typescript",
-          js: "javascript",
-          jsx: "javascript",
-          css: "css",
-          html: "html",
-          json: "json",
-          md: "markdown",
-        };
+    // Create or update files in a single batched upsert
+    if (safeFiles.length > 0) {
+      const rows = safeFiles.map((file) => ({
+        project_id: projectId,
+        file_path: file.path,
+        content: file.content,
+        language: langMap[file.path.split(".").pop()?.toLowerCase() || ""] || "plaintext",
+        updated_at: new Date().toISOString(),
+      }));
 
-        await supabase.from("project_files").upsert(
-          {
-            project_id: projectId,
-            file_path: file.path,
-            content: file.content,
-            language: langMap[ext || ""] || "plaintext",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "project_id,file_path" }
+      const { data: savedFiles, error: upsertError } = await supabase
+        .from("project_files")
+        .upsert(rows, { onConflict: "project_id,file_path" })
+        .select("id, file_path, content");
+
+      if (upsertError) {
+        console.error("Failed to save generated files:", upsertError);
+        return new Response(
+          JSON.stringify({ error: "Could not save generated files" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      // Record a version entry per generated file
+      if (savedFiles && savedFiles.length > 0) {
+        const { data: lastVersions } = await supabase
+          .from("file_versions")
+          .select("file_path, version_number")
+          .eq("project_id", projectId);
+
+        const latest = new Map<string, number>();
+        for (const v of lastVersions ?? []) {
+          const current = latest.get(v.file_path) ?? 0;
+          if ((v.version_number ?? 0) > current) latest.set(v.file_path, v.version_number ?? 0);
+        }
+
+        const versionRows = savedFiles.map((f) => ({
+          file_id: f.id,
+          project_id: projectId,
+          file_path: f.file_path,
+          content: f.content,
+          version_number: (latest.get(f.file_path) ?? 0) + 1,
+          change_type: "ai_generated",
+          change_description: (parsedResponse?.response ?? "Generado por IA").slice(0, 300),
+          created_by: user.id,
+        }));
+
+        const { error: versionError } = await supabase.from("file_versions").insert(versionRows);
+        if (versionError) console.error("Failed to save file versions:", versionError);
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, filesCreated: parsedResponse.files?.length || 0 }),
+      JSON.stringify({ success: true, filesCreated: safeFiles.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

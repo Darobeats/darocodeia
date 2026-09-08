@@ -17,6 +17,8 @@ import {
   Terminal,
   X,
   Save,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,21 +46,6 @@ const VIEWPORT_SIZES: Record<ViewportSize, { width: string; label: string }> = {
 // Transform project files to Sandpack format
 function transformFilesToSandpack(files: ProjectFile[]): Record<string, string> {
   const sandpackFiles: Record<string, string> = {};
-
-  // Base entry point
-  sandpackFiles["/index.tsx"] = `
-import React from "react";
-import { createRoot } from "react-dom/client";
-import App from "./App";
-import "./styles.css";
-
-const root = createRoot(document.getElementById("root")!);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
-`;
 
   // Base HTML
   sandpackFiles["/public/index.html"] = `
@@ -98,24 +85,26 @@ body {
 }
 `;
 
-  // Default App component if none exists
   let hasAppComponent = false;
+  let appContent = "";
+  let usesRouter = false;
 
   files.forEach((file) => {
     const path = file.file_path;
     const content = file.content || "";
 
-    // Normalize path for Sandpack (must start with /)
-    let sandpackPath = path.startsWith("/") ? path : `/${path}`;
+    if (/from\s+["']react-router-dom["']/.test(content)) usesRouter = true;
 
-    // Handle common path patterns
+    // Normalize path for Sandpack (must start with /), keeping subfolders intact
+    let sandpackPath = path.startsWith("/") ? path : `/${path}`;
     if (sandpackPath.startsWith("/src/")) {
       sandpackPath = sandpackPath.replace("/src/", "/");
     }
 
     // Check if this is the App component
-    if (sandpackPath.includes("App.tsx") || sandpackPath.includes("App.jsx")) {
+    if (/\/App\.(tsx|jsx)$/.test(sandpackPath)) {
       hasAppComponent = true;
+      appContent = content;
       sandpackFiles["/App.tsx"] = content;
     } else if (sandpackPath.endsWith(".css")) {
       // Merge CSS files
@@ -141,15 +130,15 @@ body {
     if (componentFiles.length > 0) {
       // Import and render the first component
       const firstComponent = componentFiles[0];
+      const relativePath = firstComponent.file_path
+        .replace(/^\/?src\//, "")
+        .replace(/\.(tsx|jsx)$/, "");
       const componentName =
-        firstComponent.file_path
-          .split("/")
-          .pop()
-          ?.replace(/\.(tsx|jsx)$/, "") || "Component";
+        relativePath.split("/").pop()?.replace(/[^A-Za-z0-9_]/g, "") || "Component";
 
       sandpackFiles["/App.tsx"] = `
 import React from "react";
-import ${componentName} from "./${componentName}";
+import ${componentName} from "./${relativePath}";
 
 export default function App() {
   return (
@@ -182,6 +171,43 @@ export default function App() {
     }
   }
 
+  // If the project uses react-router-dom but never creates a router itself,
+  // wrap the app so navigation between pages works inside the preview.
+  const appCreatesRouter =
+    /BrowserRouter|HashRouter|MemoryRouter|createBrowserRouter|RouterProvider/.test(appContent);
+  const needsRouterWrapper = usesRouter && !appCreatesRouter;
+
+  sandpackFiles["/index.tsx"] = needsRouterWrapper
+    ? `
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+import "./styles.css";
+
+const root = createRoot(document.getElementById("root")!);
+root.render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+`
+    : `
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./styles.css";
+
+const root = createRoot(document.getElementById("root")!);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+`;
+
   return sandpackFiles;
 }
 
@@ -191,16 +217,20 @@ function EditorWithSync({
   setViewport,
   showConsole,
   setShowConsole,
+  isFullscreen,
+  setIsFullscreen,
   onFileChange,
 }: {
   viewport: ViewportSize;
   setViewport: (v: ViewportSize) => void;
   showConsole: boolean;
   setShowConsole: (v: boolean) => void;
+  isFullscreen: boolean;
+  setIsFullscreen: (v: boolean) => void;
   onFileChange?: (filePath: string, content: string) => void;
 }) {
   const { sandpack } = useSandpack();
-  const { files, activeFile } = sandpack;
+  const { files } = sandpack;
   const [hasChanges, setHasChanges] = useState(false);
   const [lastSyncedFiles, setLastSyncedFiles] = useState<string>("");
 
@@ -244,6 +274,18 @@ function EditorWithSync({
 
   const handleRefresh = () => {
     sandpack.runSandpack();
+  };
+
+  const handleOpenExternal = () => {
+    const client = Object.values(sandpack.clients ?? {})[0] as
+      | { iframe?: HTMLIFrameElement }
+      | undefined;
+    const url = client?.iframe?.src;
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      toast.error("La vista previa aún se está cargando");
+    }
   };
 
   const handleManualSave = () => {
@@ -327,13 +369,35 @@ function EditorWithSync({
           >
             <RotateCcw className="w-4 h-4" />
           </Button>
+          <Button
+            variant={isFullscreen ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4" />
+            ) : (
+              <Maximize2 className="w-4 h-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleOpenExternal}
+            title="Abrir en nueva pestaña"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
       {/* Editor + Preview */}
       <div className="flex-1 flex overflow-hidden">
         {/* Code Editor */}
-        <div className="w-1/2 border-r border-border">
+        <div className={`${isFullscreen ? "hidden" : "w-1/2"} border-r border-border`}>
           <SandpackCodeEditor
             showTabs
             showLineNumbers
@@ -345,7 +409,7 @@ function EditorWithSync({
         </div>
 
         {/* Preview */}
-        <div className="w-1/2 flex flex-col">
+        <div className={`${isFullscreen ? "w-full" : "w-1/2"} flex flex-col`}>
           <div
             className="flex-1 flex justify-center bg-secondary/30 overflow-auto p-4"
             style={{ minHeight: showConsole ? "60%" : "100%" }}
@@ -360,8 +424,8 @@ function EditorWithSync({
               className="bg-background rounded-lg shadow-lg overflow-hidden border border-border"
             >
               <SandpackPreview
-                showNavigator={false}
-                showRefreshButton={false}
+                showNavigator
+                showRefreshButton
                 showOpenInCodeSandbox={false}
                 style={{ height: "100%" }}
               />
@@ -399,14 +463,18 @@ export default function LiveCodeEditor({
 }: LiveCodeEditorProps) {
   const [viewport, setViewport] = useState<ViewportSize>("desktop");
   const [showConsole, setShowConsole] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const sandpackFiles = useMemo(() => transformFilesToSandpack(files), [files]);
 
   const dependencies = {
     react: "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.26.0",
     "lucide-react": "^0.462.0",
     "framer-motion": "^12.0.0",
+    clsx: "^2.1.1",
+    "tailwind-merge": "^2.5.2",
   };
 
   return (
@@ -421,7 +489,7 @@ export default function LiveCodeEditor({
           externalResources: ["https://cdn.tailwindcss.com"],
           recompileMode: "delayed",
           recompileDelay: 500,
-        }}
+}}
         theme="dark"
       >
         <EditorWithSync
@@ -429,6 +497,8 @@ export default function LiveCodeEditor({
           setViewport={setViewport}
           showConsole={showConsole}
           setShowConsole={setShowConsole}
+          isFullscreen={isFullscreen}
+          setIsFullscreen={setIsFullscreen}
           onFileChange={onFileChange}
         />
       </SandpackProvider>
