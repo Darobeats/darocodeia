@@ -143,7 +143,7 @@ serve(async (req) => {
       });
     }
     const treeData = await treeResp.json();
-    const allFiles = (treeData.tree as any[]).filter(
+    const allFiles = (treeData.tree as Array<{ type: string; path: string; size: number; sha: string }>).filter(
       (n) => n.type === "blob" && isTextFile(n.path) && n.size <= MAX_FILE_SIZE
     );
     if (allFiles.length === 0) {
@@ -175,7 +175,7 @@ serve(async (req) => {
     }
 
     // Fetch blobs in batches of 10 in parallel
-    const fileRows: any[] = [];
+    const fileRows: Array<{ project_id: string; file_path: string; content: string; language: string }> = [];
     const batchSize = 10;
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);

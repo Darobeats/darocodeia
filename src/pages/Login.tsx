@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -33,8 +34,8 @@ const Login = () => {
 
       toast.success("¡Bienvenido de vuelta!");
       navigate(from, { replace: true });
-    } catch (error: any) {
-      toast.error(error.message || "Error al iniciar sesión");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Error al iniciar sesión"));
     } finally {
       setLoading(false);
     }

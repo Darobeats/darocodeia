@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,8 +33,8 @@ export function usePublicProjects() {
 
         if (fetchError) throw fetchError;
         setProjects(data || []);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(getErrorMessage(err));
         console.error("Error fetching public projects:", err);
       } finally {
         setLoading(false);

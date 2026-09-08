@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,8 +64,8 @@ export function useProjects() {
 
       if (fetchError) throw fetchError;
       setProjects(data || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       toast.error("Error al cargar proyectos");
     } finally {
       setLoading(false);
@@ -98,8 +99,8 @@ export function useProjects() {
       setProjects((prev) => [newProject, ...prev]);
       toast.success("Proyecto creado exitosamente");
       return newProject;
-    } catch (err: any) {
-      toast.error(err.message || "Error al crear el proyecto");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Error al crear el proyecto"));
       return null;
     }
   };
@@ -129,8 +130,8 @@ export function useProjects() {
       );
       toast.success("Proyecto actualizado exitosamente");
       return updatedProject;
-    } catch (err: any) {
-      toast.error(err.message || "Error al actualizar el proyecto");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Error al actualizar el proyecto"));
       return null;
     }
   };
@@ -153,8 +154,8 @@ export function useProjects() {
       setProjects((prev) => prev.filter((p) => p.id !== id));
       toast.success("Proyecto eliminado exitosamente");
       return true;
-    } catch (err: any) {
-      toast.error(err.message || "Error al eliminar el proyecto");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Error al eliminar el proyecto"));
       return false;
     }
   };

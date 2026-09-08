@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,8 +18,8 @@ const SocialLoginButtons = () => {
       });
 
       if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || "Error al iniciar sesión con Google");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Error al iniciar sesión con Google"));
     } finally {
       setLoading(false);
     }

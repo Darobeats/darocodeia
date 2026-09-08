@@ -23,7 +23,7 @@ import { Loader2 } from "lucide-react";
 interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { name: string; description?: string; status?: string }) => Promise<any>;
+  onSubmit: (data: { name: string; description?: string; status?: string }) => Promise<unknown>;
 }
 
 export function CreateProjectDialog({

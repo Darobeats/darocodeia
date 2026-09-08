@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@/data/version";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -131,6 +132,9 @@ const Dashboard = () => {
               <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || user?.email}</p>
             </div>
           </div>
+          <p className="px-3 pt-1 text-xs text-muted-foreground">
+            DaroCode v{APP_VERSION}
+          </p>
         </div>
       </aside>
 

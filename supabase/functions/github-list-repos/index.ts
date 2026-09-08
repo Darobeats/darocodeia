@@ -69,7 +69,7 @@ serve(async (req) => {
     }
 
     const repos = await ghResp.json();
-    const slim = repos.map((r: any) => ({
+    const slim = repos.map((r: Record<string, unknown>) => ({
       id: r.id,
       name: r.name,
       full_name: r.full_name,

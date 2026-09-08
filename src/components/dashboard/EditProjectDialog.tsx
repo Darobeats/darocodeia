@@ -34,7 +34,7 @@ interface EditProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project: Project | null;
-  onSubmit: (id: string, data: UpdateProjectData) => Promise<any>;
+  onSubmit: (id: string, data: UpdateProjectData) => Promise<unknown>;
 }
 
 export function EditProjectDialog({
