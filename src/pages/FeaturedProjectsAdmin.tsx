@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,7 +128,7 @@ export default function FeaturedProjectsAdmin() {
       setForm((f) => ({ ...f, thumbnail_url: data.publicUrl }));
       toast.success("Imagen subida");
     } catch (e: unknown) {
-      toast.error(getErrorMessage(e, "Error al subir imagen");
+      toast.error(getErrorMessage(e, "Error al subir imagen"));
     } finally {
       setUploading(false);
     }
@@ -177,7 +178,7 @@ export default function FeaturedProjectsAdmin() {
       setDialogOpen(false);
       fetchProjects();
     } catch (e: unknown) {
-      toast.error(getErrorMessage(e, "Error al guardar");
+      toast.error(getErrorMessage(e, "Error al guardar"));
     } finally {
       setSaving(false);
     }

@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -39,7 +40,7 @@ const Register = () => {
       toast.success("¡Cuenta creada exitosamente!");
       navigate("/dashboard");
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Error al crear cuenta");
+      toast.error(getErrorMessage(error, "Error al crear cuenta"));
     } finally {
       setLoading(false);
     }

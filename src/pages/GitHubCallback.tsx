@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGitHub } from "@/hooks/useGitHub";
@@ -35,7 +36,7 @@ export default function GitHubCallback() {
       .catch((err: unknown) => {
         console.error("GitHub OAuth callback error:", err);
         setStatus("error");
-        setErrorMsg(getErrorMessage(err, "No se pudo completar la conexión con GitHub.");
+        setErrorMsg(getErrorMessage(err, "No se pudo completar la conexión con GitHub."));
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
