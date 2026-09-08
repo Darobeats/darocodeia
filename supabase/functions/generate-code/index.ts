@@ -126,12 +126,26 @@ Use these project-specific settings when generating code.
       }
     }
 
-    // Build context from existing files
-    const existingFilesContext = existingFiles?.length > 0
-      ? `\n\nExisting files in the project:\n${existingFiles.map((f: { path: string; content: string }) =>
-          `--- ${f.path} ---\n${f.content || "(empty)"}`
-        ).join("\n\n")}`
-      : "";
+    // Build context from existing files, capped so large projects stay within limits
+    const MAX_FILES_IN_CONTEXT = 40;
+    const MAX_CHARS_PER_FILE = 8000;
+    const MAX_TOTAL_CONTEXT_CHARS = 120_000;
+
+    let contextChars = 0;
+    const contextParts: string[] = [];
+    for (const f of (existingFiles ?? []).slice(0, MAX_FILES_IN_CONTEXT) as Array<{
+      path: string;
+      content: string;
+    }>) {
+      const body = (f.content || "(empty)").slice(0, MAX_CHARS_PER_FILE);
+      if (contextChars + body.length > MAX_TOTAL_CONTEXT_CHARS) break;
+      contextChars += body.length;
+      contextParts.push(`--- ${f.path} ---\n${body}`);
+    }
+    const existingFilesContext =
+      contextParts.length > 0
+        ? `\n\nExisting files in the project (may be truncated):\n${contextParts.join("\n\n")}`
+        : "";
 
     // Build website context for duplication
     let websiteContextPrompt = "";
