@@ -38,8 +38,8 @@ const Register = () => {
 
       toast.success("¡Cuenta creada exitosamente!");
       navigate("/dashboard");
-    } catch (error: any) {
-      toast.error(error.message || "Error al crear cuenta");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Error al crear cuenta");
     } finally {
       setLoading(false);
     }
