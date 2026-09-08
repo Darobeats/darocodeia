@@ -119,8 +119,10 @@ export function ImportFromGitHubDialog({ open, onOpenChange }: Props) {
                   await initiateOAuth();
                 } catch (err: unknown) {
                   toast.error(
-                    getErrorMessage(err,
+                    getErrorMessage(
+                      err,
                       "GitHub OAuth no está configurado. Pide al administrador agregar VITE_GITHUB_CLIENT_ID."
+                    )
                   );
                 }
               }}
