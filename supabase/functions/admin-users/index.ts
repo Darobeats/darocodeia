@@ -130,9 +130,10 @@ serve(async (req) => {
 
       case "send_reset": {
         if (!email) return json({ error: "Invalid request" }, 400);
-        const { error } = await admin.auth.resetPasswordForEmail(email, {
-          redirectTo,
-        });
+        const { error } = await createClient(supabaseUrl, anonKey).auth.resetPasswordForEmail(
+          email,
+          { redirectTo }
+        );
         if (error) return json({ error: error.message }, 400);
         return json({ ok: true });
       }
