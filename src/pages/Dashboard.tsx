@@ -94,7 +94,12 @@ const Dashboard = () => {
     { icon: FolderKanban, label: "Proyectos", path: "/dashboard/projects" },
     { icon: Users, label: "Equipo", path: "/dashboard/team" },
     { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
-    ...(isAdmin ? [{ icon: Star, label: "Destacados", path: "/dashboard/featured" }] : []),
+    ...(isAdmin
+      ? [
+          { icon: Star, label: "Destacados", path: "/dashboard/featured" },
+          { icon: ShieldCheck, label: "Usuarios", path: "/dashboard/users" },
+        ]
+      : []),
     { icon: Settings, label: "Configuración", path: "/dashboard/settings" },
   ];
 

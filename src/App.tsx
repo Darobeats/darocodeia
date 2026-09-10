@@ -2,15 +2,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
+import RequestAccess from "./pages/RequestAccess";
+import ResetPassword from "./pages/ResetPassword";
+import AdminUsers from "./pages/AdminUsers";
 import Docs from "./pages/Docs";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
@@ -36,7 +39,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route path="/solicitar-acceso" element={<RequestAccess />} />
+              <Route path="/register" element={<Navigate to="/solicitar-acceso" replace />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/docs" element={<Docs />} />
               <Route path="/docs/:section/:article" element={<Docs />} />
               <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
@@ -45,12 +50,14 @@ const App = () => (
               <Route path="/dashboard/team" element={<AuthGuard><Team /></AuthGuard>} />
               <Route path="/dashboard/analytics" element={<AuthGuard><Analytics /></AuthGuard>} />
               <Route path="/dashboard/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+              <Route path="/dashboard/users" element={<AuthGuard><AdminUsers /></AuthGuard>} />
               <Route path="/dashboard/featured" element={<AuthGuard><FeaturedProjectsAdmin /></AuthGuard>} />
               <Route path="/view/*" element={<EmbedViewer />} />
               <Route path="/api/github/callback" element={<GitHubCallback />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <ChatWidget />
+            <WhatsAppButton />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
