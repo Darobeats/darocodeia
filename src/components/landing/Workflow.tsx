@@ -57,7 +57,7 @@ const steps = [
 
 const Workflow = () => {
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden">
+    <section id="workflow" className="py-24 md:py-32 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_hsl(280_70%_60%_/_0.05)_0%,_transparent_50%)]" />
       

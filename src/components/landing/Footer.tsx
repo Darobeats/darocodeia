@@ -1,43 +1,32 @@
-import { Github, Twitter, Linkedin, Youtube } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { DEFAULT_WHATSAPP_MESSAGE, whatsappLink } from "@/data/contact";
+
+const contactLink = whatsappLink(DEFAULT_WHATSAPP_MESSAGE);
 
 const socialLinks = [
-  { icon: Github, href: "#", label: "GitHub" },
-  { icon: Twitter, href: "#", label: "Twitter" },
-  { icon: Linkedin, href: "#", label: "LinkedIn" },
-  { icon: Youtube, href: "#", label: "YouTube" },
+  { icon: MessageCircle, href: contactLink, label: "WhatsApp", external: true },
 ];
 
 const Footer = () => {
   const { t } = useLanguage();
 
-  const footerLinks = {
+  const footerLinks: Record<string, { label: string; href: string; external?: boolean }[]> = {
     [t("footer.product")]: [
-      t("footer.links.features"),
-      t("footer.links.integrations"),
-      t("footer.links.pricing"),
-      t("footer.links.changelog"),
-      t("footer.links.roadmap"),
+      { label: t("footer.links.features"), href: "/#features" },
+      { label: t("footer.links.integrations"), href: "/#integrations" },
+      { label: t("footer.links.workflow"), href: "/#workflow" },
+      { label: t("footer.links.portfolio"), href: "/#portfolio" },
     ],
     [t("footer.resources")]: [
-      t("footer.links.documentation"),
-      t("footer.links.apiReference"),
-      t("footer.links.guides"),
-      t("footer.links.blog"),
-      t("footer.links.community"),
+      { label: t("footer.links.documentation"), href: "/docs" },
+      { label: t("footer.links.apiReference"), href: "/docs" },
+      { label: t("footer.links.guides"), href: "/docs" },
     ],
     [t("footer.company")]: [
-      t("footer.links.about"),
-      t("footer.links.careers"),
-      t("footer.links.press"),
-      t("footer.links.partners"),
-      t("footer.links.contact"),
-    ],
-    [t("footer.legal")]: [
-      t("footer.links.privacy"),
-      t("footer.links.terms"),
-      t("footer.links.cookies"),
-      t("footer.links.licenses"),
+      { label: t("footer.links.requestAccess"), href: "/solicitar-acceso" },
+      { label: t("footer.links.login"), href: "/login" },
+      { label: t("footer.links.contact"), href: contactLink, external: true },
     ],
   };
 
@@ -65,6 +54,8 @@ const Footer = () => {
                 <a
                   key={label}
                   href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
                 >
@@ -80,12 +71,13 @@ const Footer = () => {
               <h3 className="font-semibold mb-4 text-sm">{category}</h3>
               <ul className="space-y-3">
                 {links.map((link) => (
-                  <li key={link}>
+                  <li key={link.label}>
                     <a
-                      href="#"
+                      href={link.href}
+                      {...(link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                       className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {link}
+                      {link.label}
                     </a>
                   </li>
                 ))}
@@ -100,9 +92,9 @@ const Footer = () => {
             {t("footer.copyright")}
           </p>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <span className="text-sm text-muted-foreground">
               {t("footer.systemStatus")}
-            </a>
+            </span>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="text-sm text-muted-foreground">{t("footer.allSystems")}</span>

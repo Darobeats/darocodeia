@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePublicProjects, PublicProject } from "@/hooks/usePublicProjects";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Link } from "react-router-dom";
 
 const ProjectCard = ({ project, isActive }: { project: PublicProject; isActive: boolean }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <motion.div
@@ -52,7 +54,7 @@ const ProjectCard = ({ project, isActive }: { project: PublicProject; isActive: 
             >
               <a href={project.preview_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-4 h-4" />
-                Ver proyecto
+                {t("portfolio.viewProject")}
               </a>
             </Button>
           )}
@@ -66,7 +68,7 @@ const ProjectCard = ({ project, isActive }: { project: PublicProject; isActive: 
         </h3>
         
         <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
-          {project.description || "Sin descripción"}
+          {project.description || t("portfolio.noDescription")}
         </p>
 
         {/* Technologies */}
@@ -101,7 +103,9 @@ const ProjectCard = ({ project, isActive }: { project: PublicProject; isActive: 
   );
 };
 
-const EmptyState = () => (
+const EmptyState = () => {
+  const { t } = useLanguage();
+  return (
   <motion.div
     className="flex flex-col items-center justify-center py-16 px-4 text-center"
     initial={{ opacity: 0, y: 20 }}
@@ -111,16 +115,18 @@ const EmptyState = () => (
       <Rocket className="w-10 h-10 text-primary" />
     </div>
     <h3 className="text-xl font-semibold text-foreground mb-2">
-      Pronto habrá proyectos increíbles aquí
+      {t("portfolio.emptyTitle")}
     </h3>
     <p className="text-muted-foreground mb-6 max-w-md">
-      Sé el primero en compartir tu trabajo con la comunidad
+      {t("portfolio.emptySubtitle")}
     </p>
     <Button asChild>
-      <Link to="/solicitar-acceso">Empezar ahora</Link>
+      <Link to="/solicitar-acceso">{t("portfolio.emptyCta")}</Link>
     </Button>
   </motion.div>
-);
+  );
+};
+
 
 const LoadingSkeleton = () => (
   <div className="flex gap-6 px-4">
@@ -142,6 +148,7 @@ const LoadingSkeleton = () => (
 );
 
 const Portfolio = () => {
+  const { t } = useLanguage();
   const { projects, loading, error } = usePublicProjects();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -178,7 +185,7 @@ const Portfolio = () => {
   }, [emblaApi, onSelect]);
 
   return (
-    <section className="py-20 bg-gradient-to-b from-background to-secondary/10 overflow-hidden">
+    <section id="portfolio" className="py-20 bg-gradient-to-b from-background to-secondary/10 overflow-hidden">
       <div className="container mx-auto px-4">
         {/* Header */}
         <motion.div
@@ -188,13 +195,13 @@ const Portfolio = () => {
           viewport={{ once: true }}
         >
           <Badge variant="outline" className="mb-4">
-            Portfolio
+            {t("portfolio.label")}
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Proyectos Destacados
+            {t("portfolio.title")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Descubre los trabajos realizados por nuestra comunidad de desarrolladores
+            {t("portfolio.subtitleLong")}
           </p>
         </motion.div>
 

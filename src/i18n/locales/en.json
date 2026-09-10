@@ -78,7 +78,12 @@
     "subtitle": "Discover what you can build with DaroCode",
     "empty": "No public projects available",
     "viewProject": "View project",
-    "technologies": "Technologies"
+    "technologies": "Technologies",
+    "noDescription": "No description",
+    "emptyTitle": "Amazing projects are coming soon",
+    "emptySubtitle": "Be the first to share your work with the community",
+    "emptyCta": "Get started",
+    "subtitleLong": "Discover the work built by our developer community"
   },
   "footer": {
     "description": "The complete ecosystem for full-stack development. From ideation to deployment.",
@@ -108,7 +113,11 @@
       "privacy": "Privacy",
       "terms": "Terms",
       "cookies": "Cookies",
-      "licenses": "Licenses"
+      "licenses": "Licenses",
+      "workflow": "Workflow",
+      "portfolio": "Featured projects",
+      "requestAccess": "Request access",
+      "login": "Sign in"
     }
   },
   "chat": {
