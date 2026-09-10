@@ -124,7 +124,9 @@ const EmptyState = () => {
       <Link to="/solicitar-acceso">{t("portfolio.emptyCta")}</Link>
     </Button>
   </motion.div>
-);
+  );
+};
+
 
 const LoadingSkeleton = () => (
   <div className="flex gap-6 px-4">
