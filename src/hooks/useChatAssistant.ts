@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,11 +10,26 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+export interface ProposedFile {
+  path: string;
+  content: string;
+  language?: string;
+}
+
+export interface ChangeProposal {
+  summary: string;
+  files: ProposedFile[];
+}
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-assistant`;
+const APPLY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/apply-proposal`;
+
+const PROJECT_PATH_RE =
+  /\/dashboard\/projects\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
 
 const AUTH_REQUIRED_MESSAGE = {
-  es: "Para conversar conmigo necesitas una cuenta. Inicia sesión en /login o crea tu cuenta gratis en /register y vuelve a preguntarme. 🙂",
-  en: "You need an account to chat with me. Sign in at /login or create your free account at /register and ask me again. 🙂",
+  es: "Para conversar conmigo necesitas una cuenta. Inicia sesión en /login o solicita acceso en /solicitar-acceso y vuelve a preguntarme. 🙂",
+  en: "You need an account to chat with me. Sign in at /login or request access at /solicitar-acceso and ask me again. 🙂",
 };
 
 const LIMIT_MESSAGE = {
