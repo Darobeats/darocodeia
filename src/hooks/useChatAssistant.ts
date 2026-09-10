@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,11 +10,26 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+export interface ProposedFile {
+  path: string;
+  content: string;
+  language?: string;
+}
+
+export interface ChangeProposal {
+  summary: string;
+  files: ProposedFile[];
+}
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-assistant`;
+const APPLY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/apply-proposal`;
+
+const PROJECT_PATH_RE =
+  /\/dashboard\/projects\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
 
 const AUTH_REQUIRED_MESSAGE = {
-  es: "Para conversar conmigo necesitas una cuenta. Inicia sesión en /login o crea tu cuenta gratis en /register y vuelve a preguntarme. 🙂",
-  en: "You need an account to chat with me. Sign in at /login or create your free account at /register and ask me again. 🙂",
+  es: "Para conversar conmigo necesitas una cuenta. Inicia sesión en /login o solicita acceso en /solicitar-acceso y vuelve a preguntarme. 🙂",
+  en: "You need an account to chat with me. Sign in at /login or request access at /solicitar-acceso and ask me again. 🙂",
 };
 
 const LIMIT_MESSAGE = {
@@ -50,8 +65,15 @@ export function useChatAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [proposal, setProposal] = useState<ChangeProposal | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
   const { locale, t } = useLanguage();
   const location = useLocation();
+  const projectId = useMemo(
+    () => location.pathname.match(PROJECT_PATH_RE)?.[1] ?? null,
+    [location.pathname]
+  );
+
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -126,6 +148,7 @@ export function useChatAssistant() {
             messages: apiMessages,
             locale,
             currentPage: location.pathname,
+            projectId,
           }),
         });
 
@@ -146,6 +169,20 @@ export function useChatAssistant() {
         if (!resp.ok) {
           const errorData = await resp.json().catch(() => ({}));
           throw new Error(errorData.error || `HTTP error ${resp.status}`);
+        }
+
+        // Project mode answers with plain JSON (optionally carrying a proposal)
+        const contentType = resp.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const data = await resp.json();
+          upsertAssistant(data.content ?? "");
+          if (data.proposal?.files?.length) {
+            setProposal({
+              summary: String(data.proposal.summary ?? ""),
+              files: data.proposal.files as ProposedFile[],
+            });
+          }
+          return;
         }
 
         if (!resp.body) throw new Error("No response body");
@@ -183,18 +220,74 @@ export function useChatAssistant() {
         setIsLoading(false);
       }
     },
-    [messages, isLoading, locale, location.pathname, t]
+    [messages, isLoading, locale, location.pathname, projectId, t]
   );
+
+  const discardProposal = useCallback(() => setProposal(null), []);
+
+  const applyProposal = useCallback(async () => {
+    if (!proposal || !projectId || isApplying) return false;
+    setIsApplying(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sesión expirada");
+
+      const resp = await fetch(APPLY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          projectId,
+          summary: proposal.summary,
+          files: proposal.files,
+        }),
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP error ${resp.status}`);
+      }
+      setProposal(null);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content:
+            locale === "en"
+              ? "Changes applied to the project. You can review them in the file history."
+              : "Cambios aplicados al proyecto. Puedes revisarlos en el historial de archivos.",
+          timestamp: new Date(),
+        },
+      ]);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error");
+      return false;
+    } finally {
+      setIsApplying(false);
+    }
+  }, [proposal, projectId, isApplying, locale]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError(null);
+    setProposal(null);
   }, []);
 
   return {
     messages,
     isLoading,
     error,
+    projectId,
+    proposal,
+    isApplying,
+    applyProposal,
+    discardProposal,
     sendMessage,
     clearMessages,
   };

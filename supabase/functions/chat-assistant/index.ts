@@ -16,9 +16,80 @@ interface RequestBody {
   messages: Message[];
   locale: "es" | "en";
   currentPage?: string;
+  projectId?: string;
 }
 
 const MODEL = "google/gemini-3.8-flash";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const PROJECT_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "list_files",
+      description:
+        "Lista las rutas de todos los archivos del proyecto actual. Úsala antes de leer o proponer cambios.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_file",
+      description: "Devuelve el contenido de un archivo del proyecto actual.",
+      parameters: {
+        type: "object",
+        properties: { path: { type: "string", description: "Ruta del archivo" } },
+        required: ["path"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_code",
+      description: "Busca un texto dentro de los archivos del proyecto y devuelve coincidencias.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string", description: "Texto a buscar" } },
+        required: ["query"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propose_changes",
+      description:
+        "Propone crear o modificar archivos del proyecto. NO los guarda: el usuario debe aprobar. Envía el contenido completo de cada archivo.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "Resumen breve de los cambios" },
+          files: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                path: { type: "string" },
+                content: { type: "string" },
+                language: { type: "string" },
+              },
+              required: ["path", "content"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["summary", "files"],
+        additionalProperties: false,
+      },
+    },
+  },
+];
 
 const PLATFORM_CONTEXT = {
   es: `DaroCode es un ecosistema completo de desarrollo full-stack que integra todas las etapas del ciclo de desarrollo de software.
@@ -249,6 +320,178 @@ RULES:
 - If something does not exist in the platform, say so honestly and offer the closest alternative.
 - If asked about a featured project, use the information above.
 - Never invent pricing, features or data that is not in this context.`;
+
+    // ---------- Project mode: tool calling over the project's files ----------
+    const projectId = typeof body.projectId === "string" && UUID_RE.test(body.projectId)
+      ? body.projectId
+      : null;
+
+    if (projectId) {
+      const { data: project } = await supabase
+        .from("projects")
+        .select("id, name, description, user_id")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (project) {
+        const callTool = async (name: string, args: Record<string, unknown>) => {
+          if (name === "list_files") {
+            const { data } = await supabase
+              .from("project_files")
+              .select("file_path, language")
+              .eq("project_id", projectId)
+              .order("file_path")
+              .limit(400);
+            return JSON.stringify(data ?? []);
+          }
+          if (name === "read_file") {
+            const path = String(args.path ?? "").slice(0, 300);
+            const { data } = await supabase
+              .from("project_files")
+              .select("file_path, content")
+              .eq("project_id", projectId)
+              .eq("file_path", path)
+              .maybeSingle();
+            if (!data) return JSON.stringify({ error: "not_found" });
+            return JSON.stringify({
+              file_path: data.file_path,
+              content: (data.content ?? "").slice(0, 12000),
+            });
+          }
+          if (name === "search_code") {
+            const query = String(args.query ?? "").slice(0, 200).toLowerCase();
+            if (!query) return JSON.stringify([]);
+            const { data } = await supabase
+              .from("project_files")
+              .select("file_path, content")
+              .eq("project_id", projectId)
+              .limit(400);
+            const matches = (data ?? [])
+              .filter((f: { content: string | null }) =>
+                (f.content ?? "").toLowerCase().includes(query)
+              )
+              .slice(0, 20)
+              .map((f: { file_path: string; content: string | null }) => {
+                const lines = (f.content ?? "").split("\n");
+                const hits = lines
+                  .map((l, i) => ({ line: i + 1, text: l.trim().slice(0, 200) }))
+                  .filter((l) => l.text.toLowerCase().includes(query))
+                  .slice(0, 5);
+                return { file_path: f.file_path, hits };
+              });
+            return JSON.stringify(matches);
+          }
+          return JSON.stringify({ error: "unknown_tool" });
+        };
+
+        const projectSystem =
+          systemPrompt +
+          (locale === "es"
+            ? `\n\nMODO PROYECTO:
+Estás dentro del proyecto "${project.name}". Puedes usar herramientas para listar archivos, leer un archivo y buscar texto en el código.
+- Si el usuario pide un cambio, primero inspecciona los archivos relevantes y luego llama a propose_changes con el CONTENIDO COMPLETO de cada archivo afectado.
+- Nunca guardas nada por tu cuenta: propose_changes solo crea una propuesta que el usuario aprueba.
+- Escribe React + TypeScript + Tailwind, rutas relativas como "src/pages/Contacto.tsx", sin rutas absolutas ni "..".
+- Acompaña la propuesta con una explicación breve de qué cambia y por qué.`
+            : `\n\nPROJECT MODE:
+You are inside the project "${project.name}". You can use tools to list files, read a file and search the code.
+- If the user asks for a change, inspect the relevant files first, then call propose_changes with the FULL CONTENT of each affected file.
+- You never save anything yourself: propose_changes only creates a proposal the user approves.
+- Write React + TypeScript + Tailwind, relative paths like "src/pages/Contact.tsx", never absolute paths or "..".
+- Add a short explanation of what changes and why.`);
+
+        const convo: Array<Record<string, unknown>> = [
+          { role: "system", content: projectSystem },
+          ...messages,
+        ];
+        let proposal: { summary: string; files: unknown[] } | null = null;
+        let finalText = "";
+
+        for (let step = 0; step < 8; step++) {
+          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ model: MODEL, messages: convo, tools: PROJECT_TOOLS }),
+          });
+
+          if (!aiResp.ok) {
+            const status = aiResp.status === 429 || aiResp.status === 402 ? aiResp.status : 500;
+            console.error("AI gateway error (project mode):", aiResp.status);
+            return new Response(JSON.stringify({ error: "AI gateway error" }), {
+              status,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          const payload = await aiResp.json();
+          const choice = payload.choices?.[0]?.message;
+          if (!choice) break;
+          convo.push(choice);
+
+          const toolCalls = choice.tool_calls ?? [];
+          if (toolCalls.length === 0) {
+            finalText = choice.content ?? "";
+            break;
+          }
+
+          for (const tc of toolCalls) {
+            let args: Record<string, unknown> = {};
+            try {
+              args = JSON.parse(tc.function?.arguments ?? "{}");
+            } catch {
+              args = {};
+            }
+            const fnName = tc.function?.name ?? "";
+            let result: string;
+            if (fnName === "propose_changes") {
+              const files = Array.isArray(args.files) ? args.files.slice(0, 25) : [];
+              proposal = { summary: String(args.summary ?? ""), files };
+              result = JSON.stringify({
+                ok: true,
+                pending_user_approval: true,
+                files: files.length,
+              });
+            } else {
+              result = await callTool(fnName, args);
+            }
+            convo.push({ role: "tool", tool_call_id: tc.id, content: result.slice(0, 20000) });
+          }
+
+          if (proposal) {
+            // Ask the model for a short closing explanation, then stop.
+            const wrap = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ model: MODEL, messages: convo }),
+            });
+            if (wrap.ok) {
+              const wrapPayload = await wrap.json();
+              finalText = wrapPayload.choices?.[0]?.message?.content ?? "";
+            }
+            break;
+          }
+        }
+
+        return new Response(
+          JSON.stringify({
+            content:
+              finalText ||
+              (locale === "es"
+                ? "Listo. Revisa la propuesta de cambios."
+                : "Done. Review the proposed changes."),
+            proposal,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

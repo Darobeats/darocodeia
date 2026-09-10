@@ -7,7 +7,16 @@ import { useChatAssistant } from "@/hooks/useChatAssistant";
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const { messages, isLoading, sendMessage, clearMessages } = useChatAssistant();
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    clearMessages,
+    proposal,
+    isApplying,
+    applyProposal,
+    discardProposal,
+  } = useChatAssistant();
 
   const toggleChat = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -28,6 +37,10 @@ export function ChatWidget() {
             onSend={sendMessage}
             onClose={handleClose}
             onClear={clearMessages}
+            proposal={proposal}
+            isApplying={isApplying}
+            onApplyProposal={applyProposal}
+            onDiscardProposal={discardProposal}
           />
         )}
       </AnimatePresence>

@@ -1,13 +1,16 @@
 import { memo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Trash2 } from "lucide-react";
+import { X, Trash2, FileCode2, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { SuggestionChips } from "./SuggestionChips";
 import { useLanguage } from "@/i18n/LanguageContext";
-import type { ChatMessage as ChatMessageType } from "@/hooks/useChatAssistant";
+import type {
+  ChatMessage as ChatMessageType,
+  ChangeProposal,
+} from "@/hooks/useChatAssistant";
 
 interface ChatWindowProps {
   messages: ChatMessageType[];
@@ -15,6 +18,10 @@ interface ChatWindowProps {
   onSend: (message: string) => void;
   onClose: () => void;
   onClear: () => void;
+  proposal?: ChangeProposal | null;
+  isApplying?: boolean;
+  onApplyProposal?: () => void;
+  onDiscardProposal?: () => void;
 }
 
 export const ChatWindow = memo(function ChatWindow({
@@ -23,6 +30,10 @@ export const ChatWindow = memo(function ChatWindow({
   onSend,
   onClose,
   onClear,
+  proposal,
+  isApplying,
+  onApplyProposal,
+  onDiscardProposal,
 }: ChatWindowProps) {
   const { t } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -113,6 +124,50 @@ export const ChatWindow = memo(function ChatWindow({
           )}
         </div>
       </ScrollArea>
+
+      {/* Pending code proposal */}
+      {proposal && (
+        <div className="border-t border-border/30 bg-secondary/30 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium">
+            <FileCode2 className="h-4 w-4 text-primary" />
+            <span>Cambios propuestos ({proposal.files.length})</span>
+          </div>
+          {proposal.summary && (
+            <p className="text-xs text-muted-foreground">{proposal.summary}</p>
+          )}
+          <ul className="max-h-24 overflow-y-auto space-y-1">
+            {proposal.files.map((f) => (
+              <li key={f.path} className="text-xs font-mono text-muted-foreground truncate">
+                {f.path}
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1 h-8 text-xs"
+              onClick={onApplyProposal}
+              disabled={isApplying}
+            >
+              {isApplying ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5 mr-1" />
+              )}
+              Aplicar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              onClick={onDiscardProposal}
+              disabled={isApplying}
+            >
+              Descartar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Suggestion chips */}
       {showSuggestions && <SuggestionChips onSelect={onSend} disabled={isLoading} />}

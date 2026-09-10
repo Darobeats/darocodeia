@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { whatsappLink } from "@/data/contact";
 
 const CTA = () => {
   return (
@@ -29,8 +30,7 @@ const CTA = () => {
           </h2>
           
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
-            Únete a miles de desarrolladores que ya están transformando su flujo de trabajo 
-            con el ecosistema de desarrollo más completo.
+            El acceso a DaroCode es acompañado: cuéntanos tu proyecto y habilitamos tu cuenta.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -39,8 +39,8 @@ const CTA = () => {
               className="group px-8 py-6 text-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-[0_0_30px_hsl(175_80%_50%_/_0.3)] hover:shadow-[0_0_50px_hsl(175_80%_50%_/_0.5)]"
               asChild
             >
-              <Link to="/register">
-                Empezar gratis
+              <Link to="/solicitar-acceso">
+                Solicitar acceso
                 <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
@@ -50,7 +50,7 @@ const CTA = () => {
               className="px-8 py-6 text-lg font-semibold border-border/50 bg-card/30 backdrop-blur-sm hover:bg-card/50 hover:border-primary/50 transition-all duration-300"
               asChild
             >
-              <a href="mailto:ventas@darocode.com">Contactar ventas</a>
+              <a href={whatsappLink("Hola, quiero hablar con ventas de DaroCode.")} target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a>
             </Button>
           </div>
 

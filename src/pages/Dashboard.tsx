@@ -12,7 +12,7 @@ import { Project } from "@/hooks/useProjects";
 import { 
   LayoutDashboard, FolderKanban, Users, BarChart3, Settings, Bell, 
   Search, LogOut, Plus, TrendingUp, GitCommit, Rocket, AlertCircle,
-  Activity, Clock, CheckCircle2, MoreVertical, Pencil, Trash2, Star
+  Activity, Clock, CheckCircle2, MoreVertical, Pencil, Trash2, Star, ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,7 +94,12 @@ const Dashboard = () => {
     { icon: FolderKanban, label: "Proyectos", path: "/dashboard/projects" },
     { icon: Users, label: "Equipo", path: "/dashboard/team" },
     { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
-    ...(isAdmin ? [{ icon: Star, label: "Destacados", path: "/dashboard/featured" }] : []),
+    ...(isAdmin
+      ? [
+          { icon: Star, label: "Destacados", path: "/dashboard/featured" },
+          { icon: ShieldCheck, label: "Usuarios", path: "/dashboard/users" },
+        ]
+      : []),
     { icon: Settings, label: "Configuración", path: "/dashboard/settings" },
   ];
 

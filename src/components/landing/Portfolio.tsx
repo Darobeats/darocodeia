@@ -117,7 +117,7 @@ const EmptyState = () => (
       Sé el primero en compartir tu trabajo con la comunidad
     </p>
     <Button asChild>
-      <Link to="/register">Empezar ahora</Link>
+      <Link to="/solicitar-acceso">Empezar ahora</Link>
     </Button>
   </motion.div>
 );
