@@ -69,12 +69,13 @@ const Footer = () => {
               <h3 className="font-semibold mb-4 text-sm">{category}</h3>
               <ul className="space-y-3">
                 {links.map((link) => (
-                  <li key={link}>
+                  <li key={link.label}>
                     <a
-                      href="#"
+                      href={link.href}
+                      {...(link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                       className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {link}
+                      {link.label}
                     </a>
                   </li>
                 ))}
@@ -89,9 +90,9 @@ const Footer = () => {
             {t("footer.copyright")}
           </p>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <span className="text-sm text-muted-foreground">
               {t("footer.systemStatus")}
-            </a>
+            </span>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="text-sm text-muted-foreground">{t("footer.allSystems")}</span>
