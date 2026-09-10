@@ -16,9 +16,80 @@ interface RequestBody {
   messages: Message[];
   locale: "es" | "en";
   currentPage?: string;
+  projectId?: string;
 }
 
 const MODEL = "google/gemini-3.8-flash";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const PROJECT_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "list_files",
+      description:
+        "Lista las rutas de todos los archivos del proyecto actual. Úsala antes de leer o proponer cambios.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_file",
+      description: "Devuelve el contenido de un archivo del proyecto actual.",
+      parameters: {
+        type: "object",
+        properties: { path: { type: "string", description: "Ruta del archivo" } },
+        required: ["path"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_code",
+      description: "Busca un texto dentro de los archivos del proyecto y devuelve coincidencias.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string", description: "Texto a buscar" } },
+        required: ["query"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propose_changes",
+      description:
+        "Propone crear o modificar archivos del proyecto. NO los guarda: el usuario debe aprobar. Envía el contenido completo de cada archivo.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "Resumen breve de los cambios" },
+          files: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                path: { type: "string" },
+                content: { type: "string" },
+                language: { type: "string" },
+              },
+              required: ["path", "content"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["summary", "files"],
+        additionalProperties: false,
+      },
+    },
+  },
+];
 
 const PLATFORM_CONTEXT = {
   es: `DaroCode es un ecosistema completo de desarrollo full-stack que integra todas las etapas del ciclo de desarrollo de software.
