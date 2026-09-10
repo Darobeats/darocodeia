@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Eye, EyeOff, ArrowLeft, Mail, Lock } from "lucide-react";
-import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -62,26 +61,13 @@ const Login = () => {
             <h2 className="text-3xl font-bold">Iniciar sesión</h2>
             <p className="mt-2 text-muted-foreground">
               ¿No tienes cuenta?{" "}
-              <Link to="/register" className="text-primary hover:underline">
-                Regístrate gratis
+              <Link to="/solicitar-acceso" className="text-primary hover:underline">
+                Solicita acceso
               </Link>
             </p>
           </div>
 
           <div className="space-y-6">
-            <SocialLoginButtons />
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  O continúa con email
-                </span>
-              </div>
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Correo electrónico</Label>
