@@ -1,4 +1,29 @@
+import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+
+/**
+ * The static tags in index.html act as fallback for crawlers that don't run JS.
+ * Once a route provides its own tags, drop the static duplicates from the DOM
+ * so JS-executing crawlers only see one of each.
+ */
+const DUPLICATE_SELECTORS = [
+  'meta[name="description"]',
+  'meta[property="og:title"]',
+  'meta[property="og:description"]',
+  'meta[property="og:url"]',
+  'meta[name="twitter:title"]',
+  'meta[name="twitter:description"]',
+];
+
+function useStripStaticDuplicates() {
+  useEffect(() => {
+    DUPLICATE_SELECTORS.forEach((selector) => {
+      document
+        .querySelectorAll(`${selector}:not([data-rh])`)
+        .forEach((el) => el.remove());
+    });
+  });
+}
 
 const SITE_URL = "https://darocodeia.com";
 
