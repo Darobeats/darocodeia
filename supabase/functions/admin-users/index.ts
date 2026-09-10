@@ -57,11 +57,13 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Only the super admin (role 'admin') may use this function.
+    // Only the single super admin may use this function: admin role AND the exact email.
     const { data: isAdmin, error: roleError } = await admin.rpc("is_super_admin", {
       _user_id: user.id,
     });
-    if (roleError || !isAdmin) return json({ error: "Forbidden" }, 403);
+    const isSuperEmail =
+      (user.email ?? "").toLowerCase() === SUPER_ADMIN_EMAIL;
+    if (roleError || !isAdmin || !isSuperEmail) return json({ error: "Forbidden" }, 403);
 
     const parsed = BodySchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return json({ error: "Invalid request" }, 400);
