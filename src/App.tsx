@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { ChatWidget } from "@/components/chat/ChatWidget";
-import { WhatsAppButton } from "@/components/WhatsAppButton";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -57,7 +56,6 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <ChatWidget />
-            <WhatsAppButton />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
