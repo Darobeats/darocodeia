@@ -1,43 +1,32 @@
-import { Github, Twitter, Linkedin, Youtube } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { DEFAULT_WHATSAPP_MESSAGE, whatsappLink } from "@/data/contact";
+
+const contactLink = whatsappLink(DEFAULT_WHATSAPP_MESSAGE);
 
 const socialLinks = [
-  { icon: Github, href: "#", label: "GitHub" },
-  { icon: Twitter, href: "#", label: "Twitter" },
-  { icon: Linkedin, href: "#", label: "LinkedIn" },
-  { icon: Youtube, href: "#", label: "YouTube" },
+  { icon: MessageCircle, href: contactLink, label: "WhatsApp", external: true },
 ];
 
 const Footer = () => {
   const { t } = useLanguage();
 
-  const footerLinks = {
+  const footerLinks: Record<string, { label: string; href: string; external?: boolean }[]> = {
     [t("footer.product")]: [
-      t("footer.links.features"),
-      t("footer.links.integrations"),
-      t("footer.links.pricing"),
-      t("footer.links.changelog"),
-      t("footer.links.roadmap"),
+      { label: t("footer.links.features"), href: "/#features" },
+      { label: t("footer.links.integrations"), href: "/#integrations" },
+      { label: t("footer.links.workflow"), href: "/#workflow" },
+      { label: t("footer.links.portfolio"), href: "/#portfolio" },
     ],
     [t("footer.resources")]: [
-      t("footer.links.documentation"),
-      t("footer.links.apiReference"),
-      t("footer.links.guides"),
-      t("footer.links.blog"),
-      t("footer.links.community"),
+      { label: t("footer.links.documentation"), href: "/docs" },
+      { label: t("footer.links.apiReference"), href: "/docs" },
+      { label: t("footer.links.guides"), href: "/docs" },
     ],
     [t("footer.company")]: [
-      t("footer.links.about"),
-      t("footer.links.careers"),
-      t("footer.links.press"),
-      t("footer.links.partners"),
-      t("footer.links.contact"),
-    ],
-    [t("footer.legal")]: [
-      t("footer.links.privacy"),
-      t("footer.links.terms"),
-      t("footer.links.cookies"),
-      t("footer.links.licenses"),
+      { label: t("footer.links.requestAccess"), href: "/solicitar-acceso" },
+      { label: t("footer.links.login"), href: "/login" },
+      { label: t("footer.links.contact"), href: contactLink, external: true },
     ],
   };
 
