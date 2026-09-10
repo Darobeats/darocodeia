@@ -36,6 +36,7 @@ interface SeoProps {
 
 /** Per-route title, description, canonical and Open Graph tags. */
 export const Seo = ({ title, description, path, noindex }: SeoProps) => {
+  useStripStaticDuplicates();
   const url = `${SITE_URL}${path}`;
 
   return (
