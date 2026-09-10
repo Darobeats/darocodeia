@@ -126,13 +126,16 @@
     "greeting": "¡Hola! 👋 Soy Daro, tu asistente virtual. ¿En qué puedo ayudarte hoy?",
     "thinking": "Pensando...",
     "error": "Lo siento, hubo un error. Por favor, inténtalo de nuevo.",
+    "whatsapp": "Escribir por WhatsApp",
     "suggestions": {
       "whatIs": "¿Qué es DaroCode?",
       "features": "¿Qué características tiene?",
       "projects": "Ver proyectos destacados",
       "howToStart": "¿Cómo empezar?",
       "pricing": "¿Cuánto cuesta?",
-      "help": "Necesito ayuda"
+      "help": "Necesito ayuda",
+      "whatsapp": "WhatsApp",
+      "whatsappMessage": "Hola, quiero hablar con el equipo de DaroCode."
     }
   },
   "auth": {
