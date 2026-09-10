@@ -12,7 +12,7 @@ import { Project } from "@/hooks/useProjects";
 import { 
   LayoutDashboard, FolderKanban, Users, BarChart3, Settings, Bell, 
   Search, LogOut, Plus, TrendingUp, GitCommit, Rocket, AlertCircle,
-  Activity, Clock, CheckCircle2, MoreVertical, Pencil, Trash2, Star
+  Activity, Clock, CheckCircle2, MoreVertical, Pencil, Trash2, Star, ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
