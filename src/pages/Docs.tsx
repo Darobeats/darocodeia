@@ -48,8 +48,9 @@ const Docs = () => {
       <Seo
         title={`${currentItem?.title ?? "Documentación"} — Documentación DaroCode`}
         description={
-          currentItem?.description ??
-          "Guías, referencia de API y ejemplos para construir, desplegar y escalar tus proyectos en DaroCode."
+          currentItem
+            ? `${currentItem.title}: guía práctica de DaroCode con ejemplos de código y buenas prácticas.`
+            : "Guías, referencia de API y ejemplos para construir, desplegar y escalar tus proyectos en DaroCode."
         }
         path={`/docs/${activeSection}/${activeItem}`}
       />
