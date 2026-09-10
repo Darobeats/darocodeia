@@ -78,7 +78,12 @@
     "subtitle": "Descubre lo que puedes construir con DaroCode",
     "empty": "No hay proyectos públicos disponibles",
     "viewProject": "Ver proyecto",
-    "technologies": "Tecnologías"
+    "technologies": "Tecnologías",
+    "noDescription": "Sin descripción",
+    "emptyTitle": "Pronto habrá proyectos increíbles aquí",
+    "emptySubtitle": "Sé el primero en compartir tu trabajo con la comunidad",
+    "emptyCta": "Empezar ahora",
+    "subtitleLong": "Descubre los trabajos realizados por nuestra comunidad de desarrolladores"
   },
   "footer": {
     "description": "El ecosistema completo para desarrollo full-stack. Desde la ideación hasta el despliegue.",
