@@ -6,6 +6,7 @@ import DocsSidebar from "@/components/docs/DocsSidebar";
 import DocsSearch from "@/components/docs/DocsSearch";
 import DocsContent from "@/components/docs/DocsContent";
 import { docSections, DocItem } from "@/data/documentation";
+import { Seo } from "@/components/Seo";
 
 const Docs = () => {
   const { section: urlSection, article: urlArticle } = useParams();
@@ -44,6 +45,14 @@ const Docs = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title={`${currentItem?.title ?? "Documentación"} — Documentación DaroCode`}
+        description={
+          currentItem?.description ??
+          "Guías, referencia de API y ejemplos para construir, desplegar y escalar tus proyectos en DaroCode."
+        }
+        path={`/docs/${activeSection}/${activeItem}`}
+      />
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}

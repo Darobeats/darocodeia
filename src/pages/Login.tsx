@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Eye, EyeOff, ArrowLeft, Mail, Lock } from "lucide-react";
+import { Seo } from "@/components/Seo";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -42,6 +43,11 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <Seo
+        title="Iniciar sesión — DaroCode"
+        description="Accede a tu cuenta de DaroCode para gestionar tus proyectos, tu equipo y tus despliegues."
+        path="/login"
+      />
       {/* Left side - Form */}
       <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-20 xl:px-24">
         <motion.div

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Mail, User, Building2, MessageCircle } from "lucide-react";
 import { WHATSAPP_DISPLAY, whatsappLink } from "@/data/contact";
 import { getErrorMessage } from "@/lib/utils";
+import { Seo } from "@/components/Seo";
 
 const schema = z.object({
   full_name: z.string().trim().min(2, "Escribe tu nombre").max(120),
@@ -73,6 +74,11 @@ const RequestAccess = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <Seo
+        title="Solicitar acceso — DaroCode"
+        description="Cuéntanos sobre tu proyecto y te damos acceso al ecosistema DaroCode. Atención directa por WhatsApp."
+        path="/solicitar-acceso"
+      />
       <div className="hidden lg:flex flex-1 items-center justify-center bg-gradient-to-br from-accent/10 via-background to-primary/10 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-accent/20 via-transparent to-transparent" />
         <motion.div
