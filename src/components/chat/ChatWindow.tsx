@@ -79,6 +79,21 @@ export const ChatWindow = memo(function ChatWindow({
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="h-8 w-8 text-[#25D366] hover:text-[#25D366] hover:bg-[#25D366]/10"
+            aria-label={t("chat.whatsapp")}
+          >
+            <a
+              href={whatsappLink(t("chat.suggestions.whatsappMessage"))}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <WhatsAppIcon className="h-4 w-4 fill-current" />
+            </a>
+          </Button>
           {messages.length > 0 && (
             <Button
               variant="ghost"
