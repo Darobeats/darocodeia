@@ -37,6 +37,10 @@ export function ChatWidget() {
             onSend={sendMessage}
             onClose={handleClose}
             onClear={clearMessages}
+            proposal={proposal}
+            isApplying={isApplying}
+            onApplyProposal={applyProposal}
+            onDiscardProposal={discardProposal}
           />
         )}
       </AnimatePresence>
