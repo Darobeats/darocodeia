@@ -21,7 +21,7 @@ const integrations = [
 
 const Integrations = () => {
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden">
+    <section id="integrations" className="py-24 md:py-32 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-muted/20 to-transparent" />
       

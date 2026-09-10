@@ -11,7 +11,7 @@ const Navbar = () => {
   const { t } = useLanguage();
 
   const navItems = [
-    { label: t("nav.product"), href: "#" },
+    { label: t("nav.product"), href: "#portfolio" },
     { label: t("nav.features"), href: "#features" },
     { label: t("nav.integrations"), href: "#integrations" },
     { label: t("nav.docs"), href: "/docs", isRoute: true },
