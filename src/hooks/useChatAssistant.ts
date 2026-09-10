@@ -65,8 +65,15 @@ export function useChatAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [proposal, setProposal] = useState<ChangeProposal | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
   const { locale, t } = useLanguage();
   const location = useLocation();
+  const projectId = useMemo(
+    () => location.pathname.match(PROJECT_PATH_RE)?.[1] ?? null,
+    [location.pathname]
+  );
+
 
   const sendMessage = useCallback(
     async (content: string) => {
