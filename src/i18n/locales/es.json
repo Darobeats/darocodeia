@@ -108,7 +108,11 @@
       "privacy": "Privacidad",
       "terms": "Términos",
       "cookies": "Cookies",
-      "licenses": "Licencias"
+      "licenses": "Licencias",
+      "workflow": "Flujo de trabajo",
+      "portfolio": "Proyectos destacados",
+      "requestAccess": "Solicitar acceso",
+      "login": "Iniciar sesión"
     }
   },
   "chat": {
