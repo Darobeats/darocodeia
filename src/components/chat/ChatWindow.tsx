@@ -1,13 +1,16 @@
 import { memo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Trash2 } from "lucide-react";
+import { X, Trash2, FileCode2, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { SuggestionChips } from "./SuggestionChips";
 import { useLanguage } from "@/i18n/LanguageContext";
-import type { ChatMessage as ChatMessageType } from "@/hooks/useChatAssistant";
+import type {
+  ChatMessage as ChatMessageType,
+  ChangeProposal,
+} from "@/hooks/useChatAssistant";
 
 interface ChatWindowProps {
   messages: ChatMessageType[];
@@ -15,6 +18,10 @@ interface ChatWindowProps {
   onSend: (message: string) => void;
   onClose: () => void;
   onClear: () => void;
+  proposal?: ChangeProposal | null;
+  isApplying?: boolean;
+  onApplyProposal?: () => void;
+  onDiscardProposal?: () => void;
 }
 
 export const ChatWindow = memo(function ChatWindow({
@@ -23,6 +30,10 @@ export const ChatWindow = memo(function ChatWindow({
   onSend,
   onClose,
   onClear,
+  proposal,
+  isApplying,
+  onApplyProposal,
+  onDiscardProposal,
 }: ChatWindowProps) {
   const { t } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
