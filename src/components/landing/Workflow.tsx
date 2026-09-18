@@ -9,6 +9,7 @@ import {
   Activity,
   ArrowRight
 } from "lucide-react";
+import { useSiteText } from "@/hooks/useSiteContent";
 
 const steps = [
   {
@@ -56,6 +57,8 @@ const steps = [
 ];
 
 const Workflow = () => {
+  const st = useSiteText();
+
   return (
     <section id="workflow" className="py-24 md:py-32 relative overflow-hidden">
       {/* Background */}
@@ -69,13 +72,13 @@ const Workflow = () => {
           transition={{ duration: 0.8 }}
           className="text-center max-w-3xl mx-auto mb-16"
         >
-          <span className="text-primary font-mono text-sm tracking-wider uppercase">Flujo de Trabajo</span>
+          <span className="text-primary font-mono text-sm tracking-wider uppercase">{st("workflow.label")}</span>
           <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-6">
-            Del concepto a{" "}
-            <span className="gradient-text">producción</span>
+            {st("workflow.title")}{" "}
+            <span className="gradient-text">{st("workflow.titleHighlight")}</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Un flujo continuo que elimina la fricción entre cada etapa del desarrollo.
+            {st("workflow.subtitle")}
           </p>
         </motion.div>
 

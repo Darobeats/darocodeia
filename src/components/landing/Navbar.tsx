@@ -5,17 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { useSiteText } from "@/hooks/useSiteContent";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useLanguage();
+  const st = useSiteText();
 
-  const navItems = [
-    { label: t("nav.product"), href: "#portfolio" },
-    { label: t("nav.features"), href: "#features" },
-    { label: t("nav.integrations"), href: "#integrations" },
-    { label: t("nav.docs"), href: "/docs", isRoute: true },
-  ];
+  const navItems = [1, 2, 3, 4].map((n) => {
+    const href = st(`links.nav${n}.href`);
+    return { label: st(`links.nav${n}.label`), href, isRoute: !href.startsWith("#") };
+  });
 
   return (
     <motion.header
@@ -33,7 +33,7 @@ const Navbar = () => {
                 <span className="text-primary-foreground font-bold text-lg">D</span>
               </div>
               <span className="text-xl font-bold">
-                Daro<span className="text-primary">Code</span>
+                {st("brand.name")}<span className="text-primary">{st("brand.nameAccent")}</span>
               </span>
             </a>
 
@@ -67,7 +67,7 @@ const Navbar = () => {
                 <Link to="/login">{t("common.login")}</Link>
               </Button>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(175_80%_50%_/_0.2)]" asChild>
-                <Link to="/solicitar-acceso">Solicitar acceso</Link>
+                <Link to={st("links.primaryCta.href")}>{st("links.primaryCta.label")}</Link>
               </Button>
             </div>
 
@@ -123,7 +123,7 @@ const Navbar = () => {
                     <Link to="/login">{t("common.login")}</Link>
                   </Button>
                   <Button className="w-full bg-primary text-primary-foreground" asChild>
-                    <Link to="/solicitar-acceso">Solicitar acceso</Link>
+                    <Link to={st("links.primaryCta.href")}>{st("links.primaryCta.label")}</Link>
                   </Button>
                 </div>
               </div>

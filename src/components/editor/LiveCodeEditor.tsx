@@ -308,7 +308,7 @@ function EditorWithSync({
   return (
     <>
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/50">
+      <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border bg-muted/50">
         <div className="flex items-center gap-1">
           <Button
             variant={viewport === "desktop" ? "secondary" : "ghost"}
@@ -395,9 +395,11 @@ function EditorWithSync({
       </div>
 
       {/* Editor + Preview */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* Code Editor */}
-        <div className={`${isFullscreen ? "hidden" : "w-1/2"} border-r border-border`}>
+        <div
+          className={`${isFullscreen ? "hidden" : "w-1/2"} h-full min-h-0 border-r border-border overflow-hidden`}
+        >
           <SandpackCodeEditor
             showTabs
             showLineNumbers
@@ -409,11 +411,8 @@ function EditorWithSync({
         </div>
 
         {/* Preview */}
-        <div className={`${isFullscreen ? "w-full" : "w-1/2"} flex flex-col`}>
-          <div
-            className="flex-1 flex justify-center bg-secondary/30 overflow-auto p-4"
-            style={{ minHeight: showConsole ? "60%" : "100%" }}
-          >
+        <div className={`${isFullscreen ? "w-full" : "w-1/2"} h-full min-h-0 flex flex-col`}>
+          <div className="flex-1 min-h-0 flex justify-center bg-secondary/30 overflow-auto p-4">
             <div
               style={{
                 width: VIEWPORT_SIZES[viewport].width,
@@ -433,7 +432,7 @@ function EditorWithSync({
           </div>
 
           {showConsole && (
-            <div className="h-[40%] border-t border-border bg-background">
+            <div className="h-2/5 shrink-0 border-t border-border bg-background">
               <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/50">
                 <span className="text-xs font-medium text-muted-foreground">
                   Consola
@@ -478,7 +477,7 @@ export default function LiveCodeEditor({
   };
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="live-editor-shell h-full min-h-0 flex flex-col bg-background">
       <SandpackProvider
         template="react-ts"
         files={sandpackFiles}

@@ -22,6 +22,7 @@ import Settings from "./pages/Settings";
 import ProjectEditor from "./pages/ProjectEditor";
 import EmbedViewer from "./pages/EmbedViewer";
 import FeaturedProjectsAdmin from "./pages/FeaturedProjectsAdmin";
+import SiteContentAdmin from "./pages/SiteContentAdmin";
 import GitHubCallback from "./pages/GitHubCallback";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/dashboard/settings" element={<AuthGuard><Settings /></AuthGuard>} />
               <Route path="/dashboard/users" element={<AuthGuard><AdminUsers /></AuthGuard>} />
               <Route path="/dashboard/featured" element={<AuthGuard><FeaturedProjectsAdmin /></AuthGuard>} />
+              <Route path="/dashboard/site" element={<AuthGuard><SiteContentAdmin /></AuthGuard>} />
               <Route path="/view/*" element={<EmbedViewer />} />
               <Route path="/api/github/callback" element={<GitHubCallback />} />
               <Route path="*" element={<NotFound />} />
