@@ -451,6 +451,54 @@ export type Database = {
         }
         Relationships: []
       }
+      site_content: {
+        Row: {
+          created_at: string
+          draft_en: string | null
+          draft_es: string | null
+          id: string
+          key: string
+          label: string | null
+          published_at: string | null
+          section: string
+          type: string
+          updated_at: string
+          updated_by: string | null
+          value_en: string | null
+          value_es: string | null
+        }
+        Insert: {
+          created_at?: string
+          draft_en?: string | null
+          draft_es?: string | null
+          id?: string
+          key: string
+          label?: string | null
+          published_at?: string | null
+          section?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+          value_en?: string | null
+          value_es?: string | null
+        }
+        Update: {
+          created_at?: string
+          draft_en?: string | null
+          draft_es?: string | null
+          id?: string
+          key?: string
+          label?: string | null
+          published_at?: string | null
+          section?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+          value_en?: string | null
+          value_es?: string | null
+        }
+        Relationships: []
+      }
       team_activity: {
         Row: {
           action: string
