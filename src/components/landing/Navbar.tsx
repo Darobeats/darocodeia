@@ -67,7 +67,7 @@ const Navbar = () => {
                 <Link to="/login">{t("common.login")}</Link>
               </Button>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_hsl(175_80%_50%_/_0.2)]" asChild>
-                <Link to={st("links.primaryCta.href")}>{st("links.primaryCta")}</Link>
+                <Link to={st("links.primaryCta.href")}>{st("links.primaryCta.label")}</Link>
               </Button>
             </div>
 
@@ -123,7 +123,7 @@ const Navbar = () => {
                     <Link to="/login">{t("common.login")}</Link>
                   </Button>
                   <Button className="w-full bg-primary text-primary-foreground" asChild>
-                    <Link to={st("links.primaryCta.href")}>{st("links.primaryCta")}</Link>
+                    <Link to={st("links.primaryCta.href")}>{st("links.primaryCta.label")}</Link>
                   </Button>
                 </div>
               </div>
