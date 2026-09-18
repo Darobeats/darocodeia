@@ -97,6 +97,7 @@ const Dashboard = () => {
     ...(isAdmin
       ? [
           { icon: Star, label: "Destacados", path: "/dashboard/featured" },
+          { icon: Globe, label: "Contenido web", path: "/dashboard/site" },
           { icon: ShieldCheck, label: "Usuarios", path: "/dashboard/users" },
         ]
       : []),
