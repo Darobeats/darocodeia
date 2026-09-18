@@ -32,6 +32,8 @@ const featureConfigs: FeatureConfig[] = [
 
 const Features = () => {
   const { t } = useLanguage();
+  const st = useSiteText();
+
 
   return (
     <section id="features" className="py-24 md:py-32 relative overflow-hidden">
@@ -47,13 +49,13 @@ const Features = () => {
           transition={{ duration: 0.8 }}
           className="text-center max-w-3xl mx-auto mb-16"
         >
-          <span className="text-primary font-mono text-sm tracking-wider uppercase">{t("features.label")}</span>
+          <span className="text-primary font-mono text-sm tracking-wider uppercase">{st("features.label")}</span>
           <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-6">
-            {t("features.title")}{" "}
-            <span className="gradient-text">{t("features.titleHighlight")}</span>
+            {st("features.title")}{" "}
+            <span className="gradient-text">{st("features.titleHighlight")}</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            {t("features.subtitle")}
+            {st("features.subtitle")}
           </p>
         </motion.div>
 
