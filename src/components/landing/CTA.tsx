@@ -2,9 +2,13 @@ import { motion } from "framer-motion";
 import { ArrowRight, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { whatsappLink } from "@/data/contact";
+import { useSiteText } from "@/hooks/useSiteContent";
+import { useWhatsApp } from "@/hooks/useWhatsApp";
 
 const CTA = () => {
+  const st = useSiteText();
+  const whatsapp = useWhatsApp();
+
   return (
     <section className="py-24 md:py-32 relative overflow-hidden">
       {/* Background Effects */}
