@@ -2,16 +2,16 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { useLanguage } from "@/i18n/LanguageContext";
+import { useSiteText } from "@/hooks/useSiteContent";
 
 const Hero = () => {
-  const { t } = useLanguage();
+  const t = useSiteText();
 
   const stats = [
-    { value: "50+", label: t("hero.stats.integrations") },
-    { value: "10K+", label: t("hero.stats.developers") },
-    { value: "99.9%", label: t("hero.stats.uptime") },
-    { value: "24/7", label: t("hero.stats.support") },
+    { value: t("hero.stats.integrationsValue"), label: t("hero.stats.integrations") },
+    { value: t("hero.stats.developersValue"), label: t("hero.stats.developers") },
+    { value: t("hero.stats.uptimeValue"), label: t("hero.stats.uptime") },
+    { value: t("hero.stats.supportValue"), label: t("hero.stats.support") },
   ];
 
   return (
@@ -89,13 +89,13 @@ const Hero = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Button size="lg" className="group px-8 py-6 text-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-[0_0_30px_hsl(175_80%_50%_/_0.3)] hover:shadow-[0_0_40px_hsl(175_80%_50%_/_0.5)]" asChild>
-              <Link to="/solicitar-acceso">
+              <Link to={t("links.primaryCta.href")}>
                 {t("hero.cta")}
                 <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="px-8 py-6 text-lg font-semibold border-border/50 bg-card/30 backdrop-blur-sm hover:bg-card/50 hover:border-primary/50 transition-all duration-300" asChild>
-              <Link to="/docs">{t("hero.demo")}</Link>
+              <Link to={t("links.heroSecondary.href")}>{t("hero.demo")}</Link>
             </Button>
           </motion.div>
 

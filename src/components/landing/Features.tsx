@@ -11,6 +11,7 @@ import {
   LucideIcon
 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useSiteText } from "@/hooks/useSiteContent";
 
 interface FeatureConfig {
   icon: LucideIcon;
