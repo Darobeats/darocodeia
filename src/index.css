@@ -124,27 +124,41 @@
 /* Live editor: force Sandpack wrappers to fill the available height */
 .live-editor-shell .sp-wrapper {
   flex: 1 1 0%;
+  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .live-editor-shell .sp-layout,
 .live-editor-shell .sp-stack {
-  height: 100%;
-  min-height: 0;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+.live-editor-shell .sp-layout {
+  flex: 1 1 0%;
+  overflow: hidden;
+}
+
+.live-editor-shell .sp-stack {
+  flex: 1 1 0%;
 }
 
 .live-editor-shell .sp-code-editor,
 .live-editor-shell .sp-cm,
 .live-editor-shell .cm-editor {
-  height: 100%;
-  min-height: 0;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
 }
 
 .live-editor-shell .sp-preview-container,
 .live-editor-shell .sp-preview-iframe {
-  height: 100%;
-  min-height: 0;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
   flex: 1 1 0%;
 }

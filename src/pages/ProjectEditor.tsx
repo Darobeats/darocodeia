@@ -673,8 +673,8 @@ ${data.markdown.slice(0, 8000)}
         </aside>
 
         {/* Editor Area */}
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)] overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full min-h-0 grid grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
             <div className="shrink-0 border-b border-border px-4">
               <TabsList className="bg-transparent h-10">
               <TabsTrigger value="code" className="flex items-center gap-2">
@@ -692,7 +692,7 @@ ${data.markdown.slice(0, 8000)}
               </TabsList>
             </div>
 
-            <TabsContent value="code" className="flex-1 min-h-0 m-0 overflow-hidden">
+            <TabsContent value="code" className="h-full min-h-0 m-0 overflow-hidden">
               <ScrollArea className="h-full bg-[#282c34]">
                 {selectedFile ? (
                   <CodeViewer 
@@ -710,7 +710,7 @@ ${data.markdown.slice(0, 8000)}
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="preview" className="flex-1 min-h-0 m-0 overflow-hidden">
+            <TabsContent value="preview" className="h-full min-h-0 m-0 overflow-hidden">
               {showDiff && pendingChanges.length > 0 ? (
                 <DiffViewer
                   oldCode={pendingChanges[currentDiffIndex]?.oldContent || ""}
@@ -727,7 +727,7 @@ ${data.markdown.slice(0, 8000)}
               )}
             </TabsContent>
 
-            <TabsContent value="chat" className="flex-1 min-h-0 m-0 overflow-hidden flex flex-col">
+            <TabsContent value="chat" className="h-full min-h-0 m-0 overflow-hidden flex flex-col">
               {/* Sub-tabs for chat and versions */}
               <div className="border-b border-border px-4">
                 <div className="flex gap-4">
