@@ -112,9 +112,10 @@ serve(async (req) => {
       });
 
       if (!createRepoResponse.ok) {
-        const error = await createRepoResponse.json();
+        const errorBody = await createRepoResponse.text();
+        console.error("GitHub create repo failed:", createRepoResponse.status, errorBody);
         return new Response(
-          JSON.stringify({ error: error.message || "Failed to create repository" }),
+          JSON.stringify({ error: "Failed to create repository" }),
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
