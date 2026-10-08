@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Globe, Copy, ArrowRight, ExternalLink, AlertTriangle } from "lucide-react";
+import { Globe, ArrowRight, ExternalLink, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 function isValidUrl(str: string): boolean {
@@ -43,11 +43,6 @@ export default function EmbedViewer() {
     navigate(`/view/${encodeURIComponent(finalUrl)}`);
   };
 
-  const handleCopyShareLink = () => {
-    const shareUrl = `${window.location.origin}/view/${encodeURIComponent(targetUrl)}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast.success("Enlace copiado al portapapeles");
-  };
 
   // Landing state - no URL provided
   if (!targetUrl) {
@@ -85,27 +80,7 @@ export default function EmbedViewer() {
   // Embed state
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Top bar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card shrink-0">
-        <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
-        <Input
-          value={inputUrl}
-          onChange={(e) => setInputUrl(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleGo()}
-          className="flex-1 h-8 text-sm"
-        />
-        <Button size="sm" onClick={handleGo}>Ir</Button>
-        <Button size="sm" variant="outline" onClick={handleCopyShareLink}>
-          <Copy className="w-3.5 h-3.5" />
-        </Button>
-        <Button size="sm" variant="ghost" asChild>
-          <a href={targetUrl} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </Button>
-      </div>
-
-      {/* Iframe */}
+      {/* Iframe a pantalla completa, sin barra superior */}
       {iframeError ? (
         <div className="flex-1 flex items-center justify-center p-8 text-center">
           <div className="space-y-3">
