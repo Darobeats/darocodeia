@@ -64,7 +64,7 @@ const App = () => (
               <Route path="/api/github/callback" element={<GitHubCallback />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <ChatWidget />
+            <ChatWidgetGate />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
