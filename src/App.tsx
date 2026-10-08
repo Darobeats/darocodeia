@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -26,6 +26,13 @@ import SiteContentAdmin from "./pages/SiteContentAdmin";
 import GitHubCallback from "./pages/GitHubCallback";
 
 const queryClient = new QueryClient();
+
+// Hides the floating chatbot on the embed viewer routes so embedded pages render clean
+const ChatWidgetGate = () => {
+  const location = useLocation();
+  if (location.pathname.startsWith("/view")) return null;
+  return <ChatWidget />;
+};
 
 // Main application component with proper provider hierarchy
 const App = () => (
@@ -57,7 +64,7 @@ const App = () => (
               <Route path="/api/github/callback" element={<GitHubCallback />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <ChatWidget />
+            <ChatWidgetGate />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
