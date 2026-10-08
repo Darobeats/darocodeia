@@ -27,6 +27,13 @@ import GitHubCallback from "./pages/GitHubCallback";
 
 const queryClient = new QueryClient();
 
+// Hides the floating chatbot on the embed viewer routes so embedded pages render clean
+const ChatWidgetGate = () => {
+  const location = useLocation();
+  if (location.pathname.startsWith("/view")) return null;
+  return <ChatWidget />;
+};
+
 // Main application component with proper provider hierarchy
 const App = () => (
   <QueryClientProvider client={queryClient}>
